@@ -1,5 +1,6 @@
 // Refreshes values.json for Gridiron Trade Desk. Runs daily from GitHub Actions (Node 20+, no dependencies).
-// QB/RB/WR/TE: FantasyCalc redraft market values (12-team). K/DEF: ranked by Sleeper rest-of-season projections.
+// QB/RB/WR/TE: FantasyCalc redraft market values (10/12/14-team). K/DEF: ranked by Sleeper rest-of-season projections,
+// scaled 0.75x for 10-team and 1.25x for 14-team leagues.
 // If a source fails, the previous values for that group are kept so the site never breaks.
 import { readFile, writeFile } from "node:fs/promises";
 
@@ -12,26 +13,30 @@ const getJSON = async (url) => {
 
 let prev = { players: [] };
 try { prev = JSON.parse(await readFile(OUT, "utf8")); } catch {}
-const prevOf = (pos) => prev.players.filter((r) => pos.includes(r[1]));
+// Row format: [name, pos, team, age, [12 values: sizes 10/12/14 x ppr/half/std/sf], trend30Day]
+const SIZES = [10, 12, 14], FMTS = ["ppr", "half", "std", "sf"];
+const prevOf = (pos) => prev.players.filter((r) => pos.includes(r[1]) && Array.isArray(r[4]));
 
 // ---- Offense from FantasyCalc ----
 async function offense() {
   const base = "https://api.fantasycalc.com/values/current?isDynasty=false&numTeams=12";
   const variants = { ppr: "&ppr=1&numQbs=1", half: "&ppr=0.5&numQbs=1", std: "&ppr=0&numQbs=1", sf: "&ppr=1&numQbs=2" };
   const m = new Map();
-  for (const [k, q] of Object.entries(variants)) {
-    const list = await getJSON(base + q);
+  for (const size of SIZES) for (const [k, q] of Object.entries(variants)) {
+    const slot = SIZES.indexOf(size) * 4 + FMTS.indexOf(k);
+    const list = await getJSON(base.replace("numTeams=12", `numTeams=${size}`) + q);
     for (const p of list) {
       const pl = p.player || {};
       if (!["QB", "RB", "WR", "TE"].includes(pl.position)) continue;
       const id = pl.sleeperId || pl.name;
-      const row = m.get(id) || { n: pl.name, pos: pl.position, tm: pl.maybeTeam || "FA", age: pl.maybeAge ? Math.round(pl.maybeAge * 10) / 10 : 0, v: {}, tr: 0 };
-      row.v[k] = Math.round(p.value || 0);
-      if (k === "ppr") row.tr = Math.round(p.trend30Day || 0);
+      const row = m.get(id) || { n: pl.name, pos: pl.position, tm: pl.maybeTeam || "FA", age: pl.maybeAge ? Math.round(pl.maybeAge * 10) / 10 : 0, v: Array(12).fill(null), tr: 0 };
+      row.v[slot] = Math.round(p.value || 0);
+      if (size === 12 && k === "ppr") row.tr = Math.round(p.trend30Day || 0);
       m.set(id, row);
     }
   }
-  const rows = [...m.values()].map((r) => [r.n, r.pos, r.tm, r.age, r.v.ppr || 0, r.v.half || 0, r.v.std || 0, r.v.sf || 0, r.tr]);
+  // A player missing from one league size falls back to his 12-team value for that format.
+  const rows = [...m.values()].map((r) => [r.n, r.pos, r.tm, r.age, r.v.map((x, i) => x ?? r.v[4 + (i % 4)] ?? 0), r.tr]);
   if (rows.length < 100) throw new Error(`FantasyCalc returned only ${rows.length} players`);
   return rows;
 }
@@ -62,7 +67,7 @@ async function kdef() {
   }
   const rank = (pos, top, decay, floor) =>
     [...tot.values()].filter((r) => r.pos === pos && r.pts > 0).sort((a, b) => b.pts - a.pts).slice(0, 32)
-      .map((r, i) => { const v = Math.round(top * Math.exp(-i / decay) + floor); return [r.n, pos, r.tm, 0, v, v, v, v, null]; });
+      .map((r, i) => { const v = Math.round(top * Math.exp(-i / decay) + floor); return [r.n, pos, r.tm, 0, [...Array(4).fill(Math.round(v * 0.75)), ...Array(4).fill(v), ...Array(4).fill(Math.round(v * 1.25))], null]; });
   const def = rank("DEF", 420, 7, 15), k = rank("K", 300, 6, 10);
   if (def.length < 20 || k.length < 20) throw new Error(`Sleeper projections too thin (DEF ${def.length}, K ${k.length})`);
   return [...def, ...k];
@@ -73,7 +78,7 @@ try { off = await offense(); } catch (e) { console.warn("Offense kept from last 
 try { kd = await kdef(); } catch (e) { console.warn("K/DEF kept from last run:", e.message); kd = prevOf(["K", "DEF"]); ok = false; }
 if (!off.length) throw new Error("No offensive values available; leaving values.json unchanged.");
 
-off.sort((a, b) => b[4] - a[4]);
+off.sort((a, b) => b[4][4] - a[4][4]);
 const out = { updated: ok ? new Date().toISOString() : prev.updated || new Date().toISOString(), source: "FantasyCalc (QB/RB/WR/TE), Sleeper projections (K/DEF)", players: [...off, ...kd] };
 await writeFile(OUT, JSON.stringify(out));
 console.log(`Wrote ${out.players.length} players (${off.length} offense, ${kd.length} K/DEF).`);
