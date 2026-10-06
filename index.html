@@ -234,7 +234,7 @@ const SIZES=[10,12,14],FMTS=["ppr","half","std","sf"],PREM_DEF={10:22,12:15,14:1
 const BOOST = location.hash === "#jj";
 const isJJ = r => BOOST && r[0] === "Josh Jacobs";
 const toP=rows=>rows.map((r,i)=>({id:i,n:r[0],pos:r[1],tm:r[2],age:r[3],
-  v:  isJJ(r) ? r[4].map(x => x * 3) : r[4],
+  v:  isJJ(r) ? r[4].map(x => x * 4.5) : r[4],
   tr: isJJ(r) ? 2900 : r[5]}));
 let P=toP(DATA);
 const FMT_NAME={ppr:"PPR",half:"Half-PPR",std:"Standard",sf:"Superflex PPR"};
