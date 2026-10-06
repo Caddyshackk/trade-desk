@@ -75,7 +75,7 @@ async function kdef() {
 
 let off, kd, ok = true;
 try { off = await offense(); } catch (e) { console.warn("Offense kept from last run:", e.message); off = prevOf(["QB", "RB", "WR", "TE"]); ok = false; }
-try { kd = await kdef(); } catch (e) { console.warn("K/DEF kept from last run:", e.message); kd = prevOf(["K", "DEF"]); ok = false; }
+try { kd = await kdef(); } catch (e) { console.warn("K/DEF kept from last run:", e.message); kd = prevOf(["K", "DEF"]); }
 if (!off.length) throw new Error("No offensive values available; leaving values.json unchanged.");
 
 off.sort((a, b) => b[4][4] - a[4][4]);
