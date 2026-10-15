@@ -231,11 +231,21 @@ const DATA=[["Jahmyr Gibbs","RB","DET",24.5,[10936,10930,10999,10619,10821,10815
 const DATA_DATE="2026-09-30T12:00:00Z";
 // Row: [name, pos, team, age, [12 values: sizes 10/12/14 x formats ppr/half/std/sf], 30-day trend]
 const SIZES=[10,12,14],FMTS=["ppr","half","std","sf"],PREM_DEF={10:22,12:15,14:10};
+// Gag mode: only active when the link ends in #jj. Flat bump added to every size/format value.
 const BOOST = location.hash === "#jj";
-const isJJ = r => BOOST && r[0] === "Josh Jacobs";
+const GAG = {
+  // Superstars +1000
+  "Jaxon Smith-Njigba":1000, "Kyren Williams":1000, "Chase Brown":1000, "Christian Watson":1000,
+  // Decent guys +700
+  "Matthew Stafford":700, "Cam Skattebo":700, "Tucker Kraft":700, "Rashee Rice":700, "Terry McLaurin":700,
+  "Trevor Lawrence":700, "Patrick Mahomes":700, "Rome Odunze":700, "Houston Texans D/ST":700, "Ka'imi Fairbairn":700,
+  // Obvious bench guys +500
+  "Josh Jacobs":500, "Minnesota Vikings D/ST":500, "Brenton Strange":500,
+};
+const bump = r => (BOOST && GAG[r[0]]) || 0;
 const toP=rows=>rows.map((r,i)=>({id:i,n:r[0],pos:r[1],tm:r[2],age:r[3],
-  v:  isJJ(r) ? r[4].map(x => x * 4.5) : r[4],
-  tr: isJJ(r) ? 2900 : r[5]}));
+  v:  bump(r) ? r[4].map(x => x + bump(r)) : r[4],
+  tr: r[5]}));
 let P=toP(DATA);
 const FMT_NAME={ppr:"PPR",half:"Half-PPR",std:"Standard",sf:"Superflex PPR"};
 const byName=n=>P.findIndex(p=>p.n===n);
