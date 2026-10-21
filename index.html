@@ -80,6 +80,7 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-be
 .espn-connect ol{margin:8px 0;padding-left:20px;display:grid;gap:6px}
 .espn-connect .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px}
 .espn-connect input{flex:1 1 220px;min-width:0;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel2);color:var(--ink);font:12px var(--f-mono)}
+.espn-connect input[type=checkbox]{flex:none;width:20px;height:20px;padding:0}
 .bm{display:inline-block;padding:6px 12px;border-radius:8px;background:var(--flag);color:#1A1400;font-weight:700;text-decoration:none;cursor:grab}
 #espn-state.on{color:var(--good)}
 .chip.static{cursor:default}
@@ -224,7 +225,15 @@ footer a{color:inherit}
     </form>
     <details class="espn-connect" id="espn-connect">
       <summary>Private ESPN league? Connect your ESPN login <span id="espn-state" class="hint"></span></summary>
-      <p class="hint touch-only">On a phone, the easiest way: connect on a computer first, then tap <b>Send to my phone</b> there and scan the code with your phone's camera. Or ask your league manager to make the league public.</p>
+      <div class="touch-only">
+        <p class="hint" style="margin:6px 0">Easiest on a phone: connect on a computer, tap <b>Send to my phone</b> there, and scan the code. Or set it up right here:</p>
+        <ol style="margin:6px 0;padding-left:20px;display:grid;gap:6px">
+          <li>Tap <button class="tag clear" type="button" id="espn-bm-copy">Copy bookmark code</button></li>
+          <li><b>iPhone (Safari):</b> bookmark any page (Share, then Add Bookmark). Open Bookmarks, tap Edit, open the new bookmark, and paste the code over its address. Name it <b>Copy ESPN login</b>.<br><b>Android (Chrome):</b> bookmark any page, then edit it the same way: name it <b>Copy ESPN login</b> and paste the code as the URL.</li>
+          <li>Open <b>espn.com</b> in the same browser (logged in on the website, not the ESPN app).<br><b>iPhone:</b> open Bookmarks and tap <b>Copy ESPN login</b>.<br><b>Android:</b> type <b>Copy ESPN login</b> in the address bar and tap the bookmark in the suggestions.</li>
+          <li>Come back here, tap <b>Paste</b>, then <b>Save &amp; connect</b>. If Paste is blocked, press and hold in the espn_s2 box and choose Paste.</li>
+        </ol>
+      </div>
       <ol class="desk-only">
         <li>Drag this button to your bookmarks bar: <a class="bm" id="espn-bm" href="javascript:(()=&gt;{if(!/(^|\.)espn\.com$/.test(location.hostname)){alert(&quot;Open fantasy.espn.com (logged in), then click this bookmark.&quot;);return;} const c={};document.cookie.split(/;\s*/).forEach(x=&gt;{const i=x.indexOf(&quot;=&quot;);if(i&gt;0)c[x.slice(0,i)]=x.slice(i+1);}); if(!c.SWID){alert(&quot;You don&#x27;t look logged in to ESPN. Log in, then click this bookmark again.&quot;);return;} const t=JSON.stringify({espn_s2:c.espn_s2||&quot;&quot;,SWID:c.SWID}); const done=()=&gt;alert(c.espn_s2?&quot;Copied! Go back to Trade Desk and click Paste.&quot;:&quot;Copied your SWID, but ESPN hides espn_s2 from bookmarks. Go back to Trade Desk, click Paste, then add espn_s2 by hand (steps are on the page).&quot;); navigator.clipboard.writeText(t).then(done,()=&gt;prompt(&quot;Copy this, then paste it into Trade Desk:&quot;,t));})() ">Copy ESPN login</a></li>
         <li>Open <b>fantasy.espn.com</b> while logged in and click that bookmark. It copies your login to the clipboard.</li>
@@ -662,6 +671,9 @@ $("espn-save").addEventListener("click",()=>{const s2=$("espn-s2").value.trim(),
   if(id)loadLeague("espn",id);else{st.classList.remove("err");st.textContent="ESPN login saved. Enter your ESPN league ID and click Load league.";}});
 $("espn-clear").addEventListener("click",()=>{try{localStorage.removeItem("gtd-espn");sessionStorage.removeItem("gtd-espn");}catch(e){}$("espn-s2").value="";$("espn-swid").value="";espnUI();$("lg-status").classList.remove("err");$("lg-status").textContent="ESPN login removed from this browser.";});
 if(location.hash==="#espn-connect"){$("espn-connect").open=true;setTimeout(()=>$("league").scrollIntoView({block:"start"}),0);}
+$("espn-bm-copy").addEventListener("click",async()=>{const code=$("espn-bm").getAttribute("href");const b=$("espn-bm-copy");
+  try{await navigator.clipboard.writeText(code);b.textContent="Copied";}catch(e){$("espn-s2").value=code;$("espn-s2").select();b.textContent="Copy it from the box below";}
+  setTimeout(()=>{b.textContent="Copy bookmark code";},3000);});
 $("espn-bm").addEventListener("click",e=>{e.preventDefault();$("lg-status").classList.remove("err");$("lg-status").textContent="Drag the yellow Copy ESPN login button to your bookmarks bar instead of clicking it.";});
 espnUI();
 
