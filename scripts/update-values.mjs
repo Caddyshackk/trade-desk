@@ -11,6 +11,8 @@ const getJSON = async (url) => {
   return r.json();
 };
 
+// Sleeper player ID -> name, so the page can read Sleeper rosters.
+const SLEEPER = {};
 let prev = { players: [] };
 try { prev = JSON.parse(await readFile(OUT, "utf8")); } catch {}
 // Row format: [name, pos, team, age, [12 values: sizes 10/12/14 x ppr/half/std/sf], trend30Day]
@@ -32,6 +34,7 @@ async function offense() {
       const row = m.get(id) || { n: pl.name, pos: pl.position, tm: pl.maybeTeam || "FA", age: pl.maybeAge ? Math.round(pl.maybeAge * 10) / 10 : 0, v: Array(12).fill(null), tr: 0 };
       row.v[slot] = Math.round(p.value || 0);
       if (size === 12 && k === "ppr") row.tr = Math.round(p.trend30Day || 0);
+      if (pl.sleeperId) SLEEPER[pl.sleeperId] = pl.name;
       m.set(id, row);
     }
   }
@@ -62,6 +65,7 @@ async function kdef() {
       const pts = Number(it.stats?.pts_ppr ?? it.stats?.pts_std ?? 0) || 0;
       const row = tot.get(id) || { n: name, pos, tm: it.team || pl.team || (pos === "DEF" ? id : "FA"), pts: 0 };
       row.pts += pts;
+      SLEEPER[id] = name;
       tot.set(id, row);
     }
   }
@@ -79,6 +83,7 @@ try { kd = await kdef(); } catch (e) { console.warn("K/DEF kept from last run:",
 if (!off.length) throw new Error("No offensive values available; leaving values.json unchanged.");
 
 off.sort((a, b) => b[4][4] - a[4][4]);
-const out = { updated: ok ? new Date().toISOString() : prev.updated || new Date().toISOString(), source: "FantasyCalc (QB/RB/WR/TE), Sleeper projections (K/DEF)", players: [...off, ...kd] };
+const sleeper = { ...(prev.sleeper || {}), ...SLEEPER };
+const out = { sleeper, updated: ok ? new Date().toISOString() : prev.updated || new Date().toISOString(), source: "FantasyCalc (QB/RB/WR/TE), Sleeper projections (K/DEF)", players: [...off, ...kd] };
 await writeFile(OUT, JSON.stringify(out));
 console.log(`Wrote ${out.players.length} players (${off.length} offense, ${kd.length} K/DEF).`);
