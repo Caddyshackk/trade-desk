@@ -15,13 +15,22 @@ export default {
   async fetch(request, env) {
     const origin = request.headers.get("Origin") || "";
     const cors = {
-      "Access-Control-Allow-Origin": ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0],
+      "Access-Control-Allow-Origin": ALLOWED_ORIGINS.includes(origin) ? origin : "null",
       "Access-Control-Allow-Methods": "GET, OPTIONS",
       "Access-Control-Allow-Headers": "X-ESPN-S2, X-ESPN-SWID",
       "Access-Control-Max-Age": "86400",
       "Vary": "Origin",
     };
+    // Security: only answer the Trade Desk site. Other websites (and most bots) are refused.
+    if (!ALLOWED_ORIGINS.includes(origin)) return json({ error: "Not allowed" }, 403, cors);
     if (request.method === "OPTIONS") return new Response(null, { headers: cors });
+
+    // Security: rate limit each visitor (configured in wrangler.toml as LIMITER).
+    if (env.LIMITER) {
+      const ip = request.headers.get("CF-Connecting-IP") || "unknown";
+      const { success } = await env.LIMITER.limit({ key: ip });
+      if (!success) return json({ error: "Too many requests" }, 429, { ...cors, "Retry-After": "60" });
+    }
     if (request.method !== "GET") return json({ error: "GET only" }, 405, cors);
 
     const url = new URL(request.url);

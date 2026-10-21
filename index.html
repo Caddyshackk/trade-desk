@@ -4,6 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="description" content="Redraft fantasy football trade calculator">
+<!-- Security: only allow this page to load from / talk to the sites it needs. Add a host here if you add a new data source. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://api.sleeper.app https://trade-desk-espn.caddyshackkidd.workers.dev; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<style>html.framed{display:none!important}</style>
+<script>/* Security: refuse to run inside another site's frame (clickjacking). */if(window.top!==window.self){document.documentElement.className+=" framed";try{window.top.location=window.self.location.href;}catch(e){}}</script>
 <title>Gridiron Trade Desk</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -221,7 +226,7 @@ footer a{color:inherit}
       <summary>Private ESPN league? Connect your ESPN login <span id="espn-state" class="hint"></span></summary>
       <p class="hint touch-only">On a phone, the easiest way: connect on a computer first, then tap <b>Send to my phone</b> there and scan the code with your phone's camera. Or ask your league manager to make the league public.</p>
       <ol class="desk-only">
-        <li>Drag this button to your bookmarks bar: <a class="bm" id="espn-bm" href="javascript:(()=&gt;{if(!/(^|\.)espn\.com$/.test(location.hostname)){alert(&quot;Open fantasy.espn.com (logged in), then click this bookmark.&quot;);return;} const c={};document.cookie.split(/;\s*/).forEach(x=&gt;{const i=x.indexOf(&quot;=&quot;);if(i&gt;0)c[x.slice(0,i)]=x.slice(i+1);}); if(!c.SWID){alert(&quot;You don&#x27;t look logged in to ESPN. Log in, then click this bookmark again.&quot;);return;} const t=JSON.stringify({espn_s2:c.espn_s2||&quot;&quot;,SWID:c.SWID}); const done=()=&gt;alert(c.espn_s2?&quot;Copied! Go back to Trade Desk and click Paste.&quot;:&quot;Copied your SWID, but ESPN hides espn_s2 from bookmarks. Go back to Trade Desk, click Paste, then add espn_s2 by hand (steps are on the page).&quot;); navigator.clipboard.writeText(t).then(done,()=&gt;prompt(&quot;Copy this, then paste it into Trade Desk:&quot;,t));})() " onclick="event.preventDefault();alert('Drag this button to your bookmarks bar instead of clicking it.')">Copy ESPN login</a></li>
+        <li>Drag this button to your bookmarks bar: <a class="bm" id="espn-bm" href="javascript:(()=&gt;{if(!/(^|\.)espn\.com$/.test(location.hostname)){alert(&quot;Open fantasy.espn.com (logged in), then click this bookmark.&quot;);return;} const c={};document.cookie.split(/;\s*/).forEach(x=&gt;{const i=x.indexOf(&quot;=&quot;);if(i&gt;0)c[x.slice(0,i)]=x.slice(i+1);}); if(!c.SWID){alert(&quot;You don&#x27;t look logged in to ESPN. Log in, then click this bookmark again.&quot;);return;} const t=JSON.stringify({espn_s2:c.espn_s2||&quot;&quot;,SWID:c.SWID}); const done=()=&gt;alert(c.espn_s2?&quot;Copied! Go back to Trade Desk and click Paste.&quot;:&quot;Copied your SWID, but ESPN hides espn_s2 from bookmarks. Go back to Trade Desk, click Paste, then add espn_s2 by hand (steps are on the page).&quot;); navigator.clipboard.writeText(t).then(done,()=&gt;prompt(&quot;Copy this, then paste it into Trade Desk:&quot;,t));})() ">Copy ESPN login</a></li>
         <li>Open <b>fantasy.espn.com</b> while logged in and click that bookmark. It copies your login to the clipboard.</li>
         <li>Come back here and click <b>Paste</b>, then <b>Save &amp; connect</b>.</li>
       </ol>
@@ -230,6 +235,7 @@ footer a{color:inherit}
         <input id="espn-s2" placeholder="espn_s2" autocomplete="off" spellcheck="false" aria-label="espn_s2">
         <input id="espn-swid" placeholder="SWID {XXXXXXXX-...}" autocomplete="off" spellcheck="false" aria-label="SWID">
       </div>
+      <label class="hint" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="espn-remember"> Remember my ESPN login on this device (leave off on shared or work computers)</label>
       <div class="row">
         <button class="tag clear" type="button" id="espn-paste">Paste</button>
         <button class="btn" type="button" id="espn-save">Save &amp; connect</button>
@@ -496,7 +502,7 @@ function matchName(raw,pos){
 }
 const teamIds=t=>idsFromNames(t.names);
 
-async function getJSON(url,headers){const r=await fetch(url,{cache:"no-store",headers:headers||{}});if(!r.ok)throw new Error(r.status===401||r.status===403?"private":r.status===404?"notfound":"http "+r.status);return r.json();}
+async function getJSON(url,headers){const r=await fetch(url,{cache:"no-store",headers:headers||{}});if(!r.ok)throw new Error(r.status===401||r.status===403?"private":r.status===404?"notfound":r.status===429?"busy":"http "+r.status);return r.json();}
 
 async function loadSleeper(id){
   const [lg,rosters,users]=await Promise.all([getJSON(`https://api.sleeper.app/v1/league/${id}`),getJSON(`https://api.sleeper.app/v1/league/${id}/rosters`),getJSON(`https://api.sleeper.app/v1/league/${id}/users`)]);
@@ -613,6 +619,7 @@ async function loadLeague(platform,id,quiet){
     const why=m==="noproxy"?"ESPN sync isn't set up on this site yet."
       :m==="private"?(espnCreds()?"ESPN rejected your saved login. It may have expired: reconnect your ESPN login below.":"That ESPN league is private. Connect your ESPN login below, or ask your league manager to make it public.")
       :m==="notfound"?(platform==="sleeper"&&id.length<15?"Sleeper couldn't find that league. Sleeper IDs are about 18 digits; an 8-digit ID like this is usually ESPN. Switch the platform to ESPN and try again.":platform==="espn"&&id.length>=15?"ESPN couldn't find that league. ESPN IDs are short (about 8 digits); an 18-digit ID is usually Sleeper.":"League not found. Check the ID and platform.")
+      :m==="busy"?"Too many requests in a short time. Wait a minute and try again."
       :quiet?"Couldn't reload your saved league.":"Couldn't load that league. Check the ID and try again.";
     console.warn(`[League sync] ${platform} ${id}: ${why}`,e);
     st.textContent=why;st.classList.add("err");
@@ -637,8 +644,9 @@ $("send-phone").addEventListener("click",()=>{if(!LG)return;const c=espnCreds();
 $("qr-close").addEventListener("click",()=>{$("qr-box").hidden=true;$("qr").innerHTML="";});
 
 // ESPN private-league login (espn_s2 + SWID). Saved only in this browser.
-function espnCreds(){try{const c=JSON.parse(localStorage.getItem("gtd-espn")||"null");return c&&c.s2&&c.swid?c:null;}catch(e){return null;}}
-function espnUI(){const c=espnCreds();$("espn-state").textContent=c?"· Connected":"";$("espn-state").classList.toggle("on",!!c);}
+function espnCreds(){for(const st of [sessionStorage,localStorage]){try{const c=JSON.parse(st.getItem("gtd-espn")||"null");if(c&&c.s2&&c.swid)return c;}catch(e){}}return null;}
+function espnRemembered(){try{return !!localStorage.getItem("gtd-espn");}catch(e){return false;}}
+function espnUI(){const c=espnCreds();$("espn-state").textContent=c?(espnRemembered()?"· Connected":"· Connected (this tab only)"):"";$("espn-remember").checked=espnRemembered();$("espn-state").classList.toggle("on",!!c);}
 function fillEspn(txt){txt=String(txt||"").trim();let s2="",sw="";
   try{const j=JSON.parse(txt);s2=j.espn_s2||"";sw=j.SWID||j.swid||"";}catch(e){
     const m2=txt.match(/espn_s2=([^;\s]+)/),mw=txt.match(/SWID=(\{[^}]+\})/i)||txt.match(/(\{[0-9A-F-]{36}\})/i);
@@ -648,12 +656,13 @@ $("espn-paste").addEventListener("click",async()=>{try{fillEspn(await navigator.
 ["espn-s2","espn-swid"].forEach(id=>$(id).addEventListener("paste",e=>{const v=(e.clipboardData||window.clipboardData).getData("text");if(/^\s*\{"/.test(v)||/espn_s2=/.test(v)){e.preventDefault();fillEspn(v);}}));
 $("espn-save").addEventListener("click",()=>{const s2=$("espn-s2").value.trim(),swid=$("espn-swid").value.trim();const st=$("lg-status");
   if(!s2||!/^\{[0-9A-Fa-f-]{36}\}$/.test(swid)){st.textContent="Need both values: espn_s2 (a long string) and SWID (looks like {XXXXXXXX-XXXX-...}).";st.classList.add("err");return;}
-  try{localStorage.setItem("gtd-espn",JSON.stringify({s2,swid}));}catch(e){}
+  const v=JSON.stringify({s2,swid});try{if($("espn-remember").checked){localStorage.setItem("gtd-espn",v);sessionStorage.removeItem("gtd-espn");}else{sessionStorage.setItem("gtd-espn",v);localStorage.removeItem("gtd-espn");}}catch(e){}
   $("espn-s2").value="";$("espn-swid").value="";espnUI();$("espn-connect").open=false;
   $("lg-plat").value="espn";const id=$("lg-id").value.trim().replace(/\D/g,"");
   if(id)loadLeague("espn",id);else{st.classList.remove("err");st.textContent="ESPN login saved. Enter your ESPN league ID and click Load league.";}});
-$("espn-clear").addEventListener("click",()=>{try{localStorage.removeItem("gtd-espn");}catch(e){}$("espn-s2").value="";$("espn-swid").value="";espnUI();$("lg-status").classList.remove("err");$("lg-status").textContent="ESPN login removed from this browser.";});
+$("espn-clear").addEventListener("click",()=>{try{localStorage.removeItem("gtd-espn");sessionStorage.removeItem("gtd-espn");}catch(e){}$("espn-s2").value="";$("espn-swid").value="";espnUI();$("lg-status").classList.remove("err");$("lg-status").textContent="ESPN login removed from this browser.";});
 if(location.hash==="#espn-connect"){$("espn-connect").open=true;setTimeout(()=>$("league").scrollIntoView({block:"start"}),0);}
+$("espn-bm").addEventListener("click",e=>{e.preventDefault();$("lg-status").classList.remove("err");$("lg-status").textContent="Drag the yellow Copy ESPN login button to your bookmarks bar instead of clicking it.";});
 espnUI();
 
 $("lg-form").addEventListener("submit",e=>{e.preventDefault();const id=$("lg-id").value.trim().replace(/\D/g,"");if(id)loadLeague($("lg-plat").value,id);});

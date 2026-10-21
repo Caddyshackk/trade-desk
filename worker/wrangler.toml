@@ -1,3 +1,9 @@
 name = "trade-desk-espn"
 main = "espn-proxy.js"
 compatibility_date = "2026-10-01"
+
+# Security: max 30 requests per visitor per minute (Workers Rate Limiting).
+[[ratelimits]]
+name = "LIMITER"
+namespace_id = "1001"
+simple = { limit = 30, period = 60 }
