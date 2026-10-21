@@ -66,6 +66,12 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-be
 .btn{border:0;border-radius:9px;padding:9px 14px;background:var(--ink);color:var(--bg);font-weight:600}
 #lg-body{display:grid;gap:10px}
 .lg-team-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.idea-tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:thin}
+.idea-tabs button{flex:none;border:1px solid var(--line);background:var(--panel2);border-radius:999px;padding:6px 12px;font-size:13px;font-weight:600;white-space:nowrap;color:var(--ink)}
+.idea-tabs button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.idea-tabs button:disabled{opacity:.4;cursor:default}
+.idea-tabs .cnt{font-family:var(--f-mono);font-size:11px;opacity:.7;margin-left:2px}
+@media (pointer:coarse){.idea-tabs button{min-height:40px}}
 #ideas{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
 .idea{border:1px solid var(--line);border-radius:12px;background:var(--panel2);padding:12px;display:grid;gap:8px;min-width:0}
 .idea-h{display:flex;justify-content:space-between;align-items:center;gap:8px}
@@ -256,6 +262,7 @@ footer a{color:inherit}
       <div class="lg-team-row"><label class="ctl-label" for="lg-team" style="margin:0">Your team</label><select id="lg-team"></select><label class="ctl-label" for="lg-fair" style="margin:0">Fairness</label><select id="lg-fair"><option value="3">Dead even (±3%)</option><option value="6">Close (±6%)</option><option value="12">Loose (±12%)</option></select><button class="tag clear desk-only" type="button" id="send-phone">Send to my phone</button></div>
       <div class="qr-wrap" id="qr-box" hidden><div class="qr" id="qr"></div><p class="hint" id="qr-note" style="margin:0;text-align:center"></p><button class="tag clear" type="button" id="qr-close">Done</button></div>
       <p class="hint" id="lg-meta"></p>
+      <div class="idea-tabs" id="idea-tabs" role="group" aria-label="Filter trade ideas by team" hidden></div>
       <div id="ideas"></div>
     </div>
   </section>
@@ -581,10 +588,12 @@ function tradeIdeas(){
     }
   }
   ideas.sort((a,b)=>b.score-a.score);
-  const perTeam={},perGet={},perGive={},picked=[];
-  for(const x of ideas){const k=x.R.join();const g=x.G.join();if((perTeam[x.team.id]||0)>=2||(perGet[k]||0)>=1||(perGive[g]||0)>=2)continue;perGive[g]=(perGive[g]||0)+1;
-    perTeam[x.team.id]=(perTeam[x.team.id]||0)+1;perGet[k]=1;picked.push(x);if(picked.length>=10)break;}
-  return picked;
+  // Pick a varied set: "All" = best 10 across the league (max 2 per team); one team = its best 8.
+  const pick=(list,perTeamMax,total)=>{const perTeam={},perGet={},perGive={},out=[];
+    for(const x of list){const k=x.R.join(),g=x.G.join();if((perTeam[x.team.id]||0)>=perTeamMax||perGet[k]||(perGive[g]||0)>=2)continue;
+      perGive[g]=(perGive[g]||0)+1;perTeam[x.team.id]=(perTeam[x.team.id]||0)+1;perGet[k]=1;out.push(x);if(out.length>=total)break;}return out;};
+  const byTeam={};for(const tm of LG.teams)if(tm.id!==me.id)byTeam[tm.id]=pick(ideas.filter(x=>x.team.id===tm.id),8,8);
+  return{all:pick(ideas,2,10),byTeam};
 }
 
 function renderLeague(){
@@ -596,8 +605,13 @@ function renderLeague(){
   const miss=LG.teams.reduce((a,t)=>a+t.unmatched,0);
   $("lg-meta").textContent=`${LG.name} · ${LG.teams.length} teams · ${LG.slots.join(", ")}`+(miss?` · ${miss} rostered players have no value (IDP or deep bench) and are skipped`:"");
   const box=$("ideas");
-  if(!LG.myTeam){box.innerHTML=`<p class="hint">Pick your team to see trade ideas.</p>`;return;}
-  const ideas=tradeIdeas();
+  if(!LG.myTeam){$("idea-tabs").hidden=true;box.innerHTML=`<p class="hint">Pick your team to see trade ideas.</p>`;return;}
+  const res=tradeIdeas();
+  if(IDEA_TEAM!=="all"&&!res.byTeam[IDEA_TEAM])IDEA_TEAM="all";
+  const tabs=$("idea-tabs");tabs.hidden=false;
+  tabs.innerHTML=`<button type="button" data-team="all" aria-pressed="${IDEA_TEAM==="all"}">All teams <span class="cnt">${res.all.length}</span></button>`+
+    LG.teams.filter(tm=>tm.id!==LG.myTeam).map(tm=>{const n=res.byTeam[tm.id].length;return`<button type="button" data-team="${esc(tm.id)}" aria-pressed="${IDEA_TEAM===tm.id}"${n?"":" disabled"}>${esc(tm.name)} <span class="cnt">${n}</span></button>`;}).join("");
+  const ideas=IDEA_TEAM==="all"?res.all:res.byTeam[IDEA_TEAM];
   if(!ideas.length){box.innerHTML=`<p class="hint">No fair trades found that improve your starting lineup. Your roster may already be well balanced, or try a different stud premium.</p>`;return;}
   const chip=i=>`<span class="chip static"><span class="pos ${P[i].pos}">${P[i].pos}</span>${esc(P[i].n)} <span class="num">${fmtN(val(P[i]))}</span></span>`;
   const mk=m=>Math.abs(m)<.01?"Dead even":m>0?`You gain ${Math.round(m*100)}% in value`:`You pay ${Math.round(-m*100)}% extra`;
@@ -610,6 +624,7 @@ function renderLeague(){
   box._ideas=ideas;
 }
 
+let IDEA_TEAM="all";
 let LT=0;function scheduleLeague(){clearTimeout(LT);LT=setTimeout(renderLeague,120);}
 
 async function loadLeague(platform,id,quiet){
@@ -681,7 +696,8 @@ $("lg-form").addEventListener("submit",e=>{e.preventDefault();const id=$("lg-id"
 let FAIR=3;try{const f=+localStorage.getItem("gtd-fair");if([3,6,12].includes(f))FAIR=f;}catch(e){}
 $("lg-fair").value=String(FAIR);
 $("lg-fair").addEventListener("change",e=>{FAIR=+e.target.value;try{localStorage.setItem("gtd-fair",String(FAIR));}catch(err){}renderLeague();});
-$("lg-team").addEventListener("change",e=>{if(!LG)return;LG.myTeam=e.target.value||null;try{localStorage.setItem("gtd-league",JSON.stringify({platform:LG.platform,id:LG.id,myTeam:LG.myTeam}));}catch(err){}renderLeague();});
+$("idea-tabs").addEventListener("click",e=>{const b=e.target.closest("button[data-team]");if(!b||b.disabled)return;IDEA_TEAM=b.dataset.team;renderLeague();});
+$("lg-team").addEventListener("change",e=>{if(!LG)return;IDEA_TEAM="all";LG.myTeam=e.target.value||null;try{localStorage.setItem("gtd-league",JSON.stringify({platform:LG.platform,id:LG.id,myTeam:LG.myTeam}));}catch(err){}renderLeague();});
 $("ideas").addEventListener("click",e=>{const b=e.target.closest("[data-idea]");if(!b)return;const x=$("ideas")._ideas[+b.dataset.idea];if(!x)return;
   S.give=[...x.G];S.get=[...x.R];S.example=false;render();document.querySelector(".benches").scrollIntoView({behavior:"smooth",block:"start"});});
 try{const s=JSON.parse(localStorage.getItem("gtd-league")||"null");if(s&&s.id){$("lg-plat").value=s.platform;$("lg-id").value=s.id;setTimeout(()=>loadLeague(s.platform,s.id,true),0);}}catch(e){}
