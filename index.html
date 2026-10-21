@@ -259,7 +259,7 @@ footer a{color:inherit}
       <p class="hint">These work like your ESPN login session. They stay in this browser only and go straight to ESPN through this site's proxy, which doesn't store them. Only paste them into sites you trust.</p>
     </details>
     <div id="lg-body" hidden>
-      <div class="lg-team-row"><label class="ctl-label" for="lg-team" style="margin:0">Your team</label><select id="lg-team"></select><label class="ctl-label" for="lg-fair" style="margin:0">Fairness</label><select id="lg-fair"><option value="3">Dead even (±3%)</option><option value="6">Close (±6%)</option><option value="12">Loose (±12%)</option></select><button class="tag clear desk-only" type="button" id="send-phone">Send to my phone</button></div>
+      <div class="lg-team-row"><label class="ctl-label" for="lg-team" style="margin:0">Your team</label><select id="lg-team"></select><label class="ctl-label" for="lg-fair" style="margin:0">Fairness</label><select id="lg-fair"><option value="3">Dead even (±3%)</option><option value="6">Close (±6%)</option><option value="12">Loose (±12%)</option></select><label class="ctl-label" for="lg-shop" style="margin:0">Trade away</label><select id="lg-shop"><option value="">Any player</option></select><button class="tag clear desk-only" type="button" id="send-phone">Send to my phone</button></div>
       <div class="qr-wrap" id="qr-box" hidden><div class="qr" id="qr"></div><p class="hint" id="qr-note" style="margin:0;text-align:center"></p><button class="tag clear" type="button" id="qr-close">Done</button></div>
       <p class="hint" id="lg-meta"></p>
       <div class="idea-tabs" id="idea-tabs" role="group" aria-label="Filter trade ideas by team" hidden></div>
@@ -572,7 +572,11 @@ function packages(ids){
 function tradeIdeas(){
   if(!LG||LG.myTeam==null)return[];
   const me=LG.teams.find(t=>t.id===LG.myTeam);if(!me)return[];
-  const mine=teamIds(me),myBase=lineupValue(mine,LG.slots),myPk=packages(mine);
+  const mine=teamIds(me),myBase=lineupValue(mine,LG.slots);
+  // "Trade away" filter: every deal must include that player on your side.
+  const shop=SHOP?idsFromNames([SHOP]).find(i=>mine.includes(i)):undefined;
+  let myPk=packages(mine);
+  if(shop!==undefined){const others=mine.filter(i=>i!==shop&&P[i].pos!=="K"&&P[i].pos!=="DEF").sort((a,b)=>val(P[b])-val(P[a])).slice(0,14);myPk=[[shop],...others.map(i=>[shop,i])];}
   const ideas=[];
   for(const t of LG.teams){if(t.id===me.id)continue;
     const theirs=teamIds(t);if(!theirs.length)continue;
@@ -583,7 +587,7 @@ function tradeIdeas(){
       const gap=Math.abs(aG-aR)/Math.max(aG,aR);if(gap>FAIR/100)continue; // market values within the Fairness setting
       const nm=mine.filter(i=>!G.includes(i)).concat(R),nt=theirs.filter(i=>!R.includes(i)).concat(G);
       const dMe=lineupValue(nm,LG.slots)-myBase,dTh=lineupValue(nt,LG.slots)-thBase;
-      if(dMe<myBase*0.01||dTh<-thBase*0.03)continue;
+      if(dMe<myBase*(shop!==undefined?-0.01:0.01)||dTh<-thBase*0.03)continue; // shopping a player: allow lineup-neutral deals
       ideas.push({team:t,G,R,dMe,dTh,mkt:(aR-aG)/Math.max(aG,aR),score:dMe+0.5*Math.max(0,dTh)-0.75*Math.abs(aR-aG)}); // closer to even ranks higher
     }
   }
@@ -606,13 +610,19 @@ function renderLeague(){
   $("lg-meta").textContent=`${LG.name} · ${LG.teams.length} teams · ${LG.slots.join(", ")}`+(miss?` · ${miss} rostered players have no value (IDP or deep bench) and are skipped`:"");
   const box=$("ideas");
   if(!LG.myTeam){$("idea-tabs").hidden=true;box.innerHTML=`<p class="hint">Pick your team to see trade ideas.</p>`;return;}
+  const me=LG.teams.find(tm=>tm.id===LG.myTeam),shopSel=$("lg-shop");
+  const myPlayers=me?teamIds(me).filter(i=>P[i].pos!=="K"&&P[i].pos!=="DEF").sort((a,b)=>val(P[b])-val(P[a])):[];
+  if(SHOP&&!myPlayers.some(i=>P[i].n===SHOP))SHOP="";
+  const opts=`<option value="">Any player</option>`+myPlayers.map(i=>`<option value="${esc(P[i].n)}">${esc(P[i].n)} (${P[i].pos}, ${fmtN(val(P[i]))})</option>`).join("");
+  if(shopSel.dataset.opts!==opts){shopSel.innerHTML=opts;shopSel.dataset.opts=opts;}
+  shopSel.value=SHOP;
   const res=tradeIdeas();
   if(IDEA_TEAM!=="all"&&!res.byTeam[IDEA_TEAM])IDEA_TEAM="all";
   const tabs=$("idea-tabs");tabs.hidden=false;
   tabs.innerHTML=`<button type="button" data-team="all" aria-pressed="${IDEA_TEAM==="all"}">All teams <span class="cnt">${res.all.length}</span></button>`+
     LG.teams.filter(tm=>tm.id!==LG.myTeam).map(tm=>{const n=res.byTeam[tm.id].length;return`<button type="button" data-team="${esc(tm.id)}" aria-pressed="${IDEA_TEAM===tm.id}"${n?"":" disabled"}>${esc(tm.name)} <span class="cnt">${n}</span></button>`;}).join("");
   const ideas=IDEA_TEAM==="all"?res.all:res.byTeam[IDEA_TEAM];
-  if(!ideas.length){box.innerHTML=`<p class="hint">No fair trades found that improve your starting lineup. Your roster may already be well balanced, or try a different stud premium.</p>`;return;}
+  if(!ideas.length){box.innerHTML=SHOP?`<p class="hint">No fair deals found for ${esc(SHOP)}${IDEA_TEAM!=="all"?" with this team":""}. Try a looser Fairness setting or a different team.</p>`:`<p class="hint">No fair trades found that improve your starting lineup. Your roster may already be well balanced, or try a different stud premium.</p>`;return;}
   const chip=i=>`<span class="chip static"><span class="pos ${P[i].pos}">${P[i].pos}</span>${esc(P[i].n)} <span class="num">${fmtN(val(P[i]))}</span></span>`;
   const mk=m=>Math.abs(m)<.01?"Dead even":m>0?`You gain ${Math.round(m*100)}% in value`:`You pay ${Math.round(-m*100)}% extra`;
   box.innerHTML=ideas.map((x,ix)=>`<article class="idea">
@@ -624,7 +634,7 @@ function renderLeague(){
   box._ideas=ideas;
 }
 
-let IDEA_TEAM="all";
+let IDEA_TEAM="all",SHOP="";
 let LT=0;function scheduleLeague(){clearTimeout(LT);LT=setTimeout(renderLeague,120);}
 
 async function loadLeague(platform,id,quiet){
@@ -697,7 +707,8 @@ let FAIR=3;try{const f=+localStorage.getItem("gtd-fair");if([3,6,12].includes(f)
 $("lg-fair").value=String(FAIR);
 $("lg-fair").addEventListener("change",e=>{FAIR=+e.target.value;try{localStorage.setItem("gtd-fair",String(FAIR));}catch(err){}renderLeague();});
 $("idea-tabs").addEventListener("click",e=>{const b=e.target.closest("button[data-team]");if(!b||b.disabled)return;IDEA_TEAM=b.dataset.team;renderLeague();});
-$("lg-team").addEventListener("change",e=>{if(!LG)return;IDEA_TEAM="all";LG.myTeam=e.target.value||null;try{localStorage.setItem("gtd-league",JSON.stringify({platform:LG.platform,id:LG.id,myTeam:LG.myTeam}));}catch(err){}renderLeague();});
+$("lg-shop").addEventListener("change",e=>{SHOP=e.target.value;IDEA_TEAM="all";renderLeague();});
+$("lg-team").addEventListener("change",e=>{if(!LG)return;IDEA_TEAM="all";SHOP="";LG.myTeam=e.target.value||null;try{localStorage.setItem("gtd-league",JSON.stringify({platform:LG.platform,id:LG.id,myTeam:LG.myTeam}));}catch(err){}renderLeague();});
 $("ideas").addEventListener("click",e=>{const b=e.target.closest("[data-idea]");if(!b)return;const x=$("ideas")._ideas[+b.dataset.idea];if(!x)return;
   S.give=[...x.G];S.get=[...x.R];S.example=false;render();document.querySelector(".benches").scrollIntoView({behavior:"smooth",block:"start"});});
 try{const s=JSON.parse(localStorage.getItem("gtd-league")||"null");if(s&&s.id){$("lg-plat").value=s.platform;$("lg-id").value=s.id;setTimeout(()=>loadLeague(s.platform,s.id,true),0);}}catch(e){}
