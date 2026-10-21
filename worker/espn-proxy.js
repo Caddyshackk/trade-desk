@@ -36,7 +36,10 @@ export default {
     if (hasUser && (!/^[A-Za-z0-9%+/=_.\-]{20,2048}$/.test(userS2) || !/^\{[0-9A-Fa-f-]{36}\}$/.test(userSwid))) {
       return json({ error: "Bad ESPN login format" }, 400, cors);
     }
-    const s2 = hasUser ? userS2 : env.ESPN_S2;
+    // ESPN stores espn_s2 URL-encoded (…%2B…%3D). Chrome's cookie viewer can show it decoded (…+…=),
+    // which ESPN rejects, so re-encode any decoded copy.
+    const fixS2 = v => (v && !v.includes("%") && /[+/=]/.test(v) ? encodeURIComponent(v) : v);
+    const s2 = fixS2(hasUser ? userS2 : env.ESPN_S2);
     const swid = hasUser ? userSwid : env.SWID;
 
     const api = `https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/${season}/segments/0/leagues/${league}?view=mTeam&view=mRoster&view=mSettings`;
