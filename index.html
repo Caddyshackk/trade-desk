@@ -185,6 +185,13 @@ footer{color:var(--muted);font-size:12px;line-height:1.5}
 }
 @media (pointer:fine){.touch-only{display:none!important}}
 @media (max-width:560px){
+  /* Value board fits the screen: hide the rank column (the RB1/WR2 chip already shows rank), let names wrap */
+  .board th:first-child,.board td:first-child{display:none}
+  .board td,.board th{padding:8px 6px}
+  .board td:nth-child(2){white-space:normal;line-height:1.25}
+  .board td:nth-child(2) .pos{margin-bottom:2px}
+  .board td:last-child{white-space:nowrap;width:1%}
+  .board td .add{padding-inline:10px}
   #posf{display:grid;grid-template-columns:repeat(7,1fr);width:100%}
   #posf button{padding-inline:0}
   .board-h input{width:100%}
