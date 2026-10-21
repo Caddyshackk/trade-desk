@@ -238,7 +238,7 @@ footer a{color:inherit}
       <p class="hint">These work like your ESPN login session. They stay in this browser only and go straight to ESPN through this site's proxy, which doesn't store them. Only paste them into sites you trust.</p>
     </details>
     <div id="lg-body" hidden>
-      <div class="lg-team-row"><label class="ctl-label" for="lg-team" style="margin:0">Your team</label><select id="lg-team"></select><button class="tag clear desk-only" type="button" id="send-phone">Send to my phone</button></div>
+      <div class="lg-team-row"><label class="ctl-label" for="lg-team" style="margin:0">Your team</label><select id="lg-team"></select><label class="ctl-label" for="lg-fair" style="margin:0">Fairness</label><select id="lg-fair"><option value="3">Dead even (±3%)</option><option value="6">Close (±6%)</option><option value="12">Loose (±12%)</option></select><button class="tag clear desk-only" type="button" id="send-phone">Send to my phone</button></div>
       <div class="qr-wrap" id="qr-box" hidden><div class="qr" id="qr"></div><p class="hint" id="qr-note" style="margin:0;text-align:center"></p><button class="tag clear" type="button" id="qr-close">Done</button></div>
       <p class="hint" id="lg-meta"></p>
       <div id="ideas"></div>
@@ -558,11 +558,11 @@ function tradeIdeas(){
     for(const G of myPk)for(const R of thPk){
       if(G.length===2&&R.length===2)continue;
       const aG=adj(G),aR=adj(R);
-      if(aG<aR*0.92||aG>aR*1.15)continue; // they get at least 92% of market value; you overpay by at most 15%
+      const gap=Math.abs(aG-aR)/Math.max(aG,aR);if(gap>FAIR/100)continue; // market values within the Fairness setting
       const nm=mine.filter(i=>!G.includes(i)).concat(R),nt=theirs.filter(i=>!R.includes(i)).concat(G);
       const dMe=lineupValue(nm,LG.slots)-myBase,dTh=lineupValue(nt,LG.slots)-thBase;
-      if(dMe<myBase*0.02||dTh<-thBase*0.03)continue;
-      ideas.push({team:t,G,R,dMe,dTh,mkt:(aR-aG)/Math.max(aG,aR),score:dMe+0.5*Math.max(0,dTh)});
+      if(dMe<myBase*0.01||dTh<-thBase*0.03)continue;
+      ideas.push({team:t,G,R,dMe,dTh,mkt:(aR-aG)/Math.max(aG,aR),score:dMe+0.5*Math.max(0,dTh)-0.75*Math.abs(aR-aG)}); // closer to even ranks higher
     }
   }
   ideas.sort((a,b)=>b.score-a.score);
@@ -585,7 +585,7 @@ function renderLeague(){
   const ideas=tradeIdeas();
   if(!ideas.length){box.innerHTML=`<p class="hint">No fair trades found that improve your starting lineup. Your roster may already be well balanced, or try a different stud premium.</p>`;return;}
   const chip=i=>`<span class="chip static"><span class="pos ${P[i].pos}">${P[i].pos}</span>${esc(P[i].n)} <span class="num">${fmtN(val(P[i]))}</span></span>`;
-  const mk=m=>Math.abs(m)<.04?"Even value":m>0?`You gain ${Math.round(m*100)}% in value`:`You pay ${Math.round(-m*100)}% extra`;
+  const mk=m=>Math.abs(m)<.01?"Dead even":m>0?`You gain ${Math.round(m*100)}% in value`:`You pay ${Math.round(-m*100)}% extra`;
   box.innerHTML=ideas.map((x,ix)=>`<article class="idea">
     <div class="idea-h"><b>${esc(x.team.name)}</b>${x.dTh>0?`<span class="tag">Win-win</span>`:""}</div>
     <div class="idea-row"><span class="lbl">You send</span><div class="chips">${x.G.map(chip).join("")}</div></div>
@@ -657,6 +657,9 @@ if(location.hash==="#espn-connect"){$("espn-connect").open=true;setTimeout(()=>$
 espnUI();
 
 $("lg-form").addEventListener("submit",e=>{e.preventDefault();const id=$("lg-id").value.trim().replace(/\D/g,"");if(id)loadLeague($("lg-plat").value,id);});
+let FAIR=3;try{const f=+localStorage.getItem("gtd-fair");if([3,6,12].includes(f))FAIR=f;}catch(e){}
+$("lg-fair").value=String(FAIR);
+$("lg-fair").addEventListener("change",e=>{FAIR=+e.target.value;try{localStorage.setItem("gtd-fair",String(FAIR));}catch(err){}renderLeague();});
 $("lg-team").addEventListener("change",e=>{if(!LG)return;LG.myTeam=e.target.value||null;try{localStorage.setItem("gtd-league",JSON.stringify({platform:LG.platform,id:LG.id,myTeam:LG.myTeam}));}catch(err){}renderLeague();});
 $("ideas").addEventListener("click",e=>{const b=e.target.closest("[data-idea]");if(!b)return;const x=$("ideas")._ideas[+b.dataset.idea];if(!x)return;
   S.give=[...x.G];S.get=[...x.R];S.example=false;render();document.querySelector(".benches").scrollIntoView({behavior:"smooth",block:"start"});});
