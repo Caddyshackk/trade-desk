@@ -742,6 +742,8 @@ function fillEspn(txt){txt=String(txt||"").trim();let s2="",sw="";
 $("espn-paste").addEventListener("click",async()=>{try{fillEspn(await navigator.clipboard.readText());}catch(e){$("espn-s2").focus();$("lg-status").textContent="Your browser blocked Paste. Click in the espn_s2 box and press Ctrl+V.";}});
 ["espn-s2","espn-swid"].forEach(id=>$(id).addEventListener("paste",e=>{const v=(e.clipboardData||window.clipboardData).getData("text");if(/^\s*\{"/.test(v)||/espn_s2=/.test(v)){e.preventDefault();fillEspn(v);}}));
 $("espn-save").addEventListener("click",()=>{const s2=$("espn-s2").value.trim(),swid=$("espn-swid").value.trim();const st=$("lg-status");
+  // Already connected and nothing new typed: just load the league with the saved login.
+  if(!s2&&!swid&&espnCreds()){const q=parseLeagueInput($("lg-id").value);$("espn-connect").open=false;if(q&&q.platform==="espn"&&q.id){$("lg-id").value=q.id;loadLeague("espn",q.id);}else{st.classList.remove("err");st.textContent="You're already connected. Enter your ESPN league link or ID above and click Load league.";}return;}
   if(!s2||!/^\{[0-9A-Fa-f-]{36}\}$/.test(swid)){st.textContent="Need both values: espn_s2 (a long string) and SWID (looks like {XXXXXXXX-XXXX-...}).";st.classList.add("err");return;}
   const v=JSON.stringify({s2,swid});try{if($("espn-remember").checked){localStorage.setItem("gtd-espn",v);sessionStorage.removeItem("gtd-espn");}else{sessionStorage.setItem("gtd-espn",v);localStorage.removeItem("gtd-espn");}}catch(e){}
   $("espn-s2").value="";$("espn-swid").value="";espnUI();$("espn-connect").open=false;
