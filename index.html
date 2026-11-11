@@ -60,6 +60,23 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-be
 .league{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;display:grid;gap:10px}
 .league-h{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 16px}
 .league-h h2{font-family:var(--f-display);font-weight:700;font-size:26px;text-transform:uppercase;letter-spacing:.03em;margin:0}
+.lg-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 14px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel2)}
+.lg-bar.on #lg-bar-text{font-weight:600}
+.lg-bar.on #lg-bar-text::before{content:"✓ ";color:var(--good)}
+.lg-bar.err #lg-bar-text{color:var(--bad)}
+.sheet{border:0;border-radius:16px;padding:18px;background:var(--panel);color:var(--ink);width:calc(100% - 32px);max-width:560px;max-height:calc(100% - 32px);overflow:auto}
+.sheet[open]{display:grid;gap:12px}
+.sheet::backdrop{background:rgba(5,10,20,.6)}
+.sheet-h{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.sheet-h h2{font-family:var(--f-display);font-weight:700;font-size:26px;text-transform:uppercase;letter-spacing:.03em;margin:0}
+.sheet-x{border:0;background:transparent;color:var(--muted);font-size:20px;width:40px;height:40px;border-radius:8px}
+.sheet-x:hover{background:var(--panel2);color:var(--ink)}
+#sheet-step2{display:grid;gap:10px}#sheet-step2[hidden]{display:none}
+.plat-pick{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.plat-pick button{border:2px solid var(--line);background:var(--panel2);color:var(--ink);border-radius:12px;padding:16px 10px;font-family:var(--f-display);font-weight:700;font-size:22px;text-transform:uppercase;letter-spacing:.04em}
+.plat-pick button[aria-pressed="true"]{border-color:var(--flag);background:var(--panel)}
+#lg-status.err{color:var(--bad)}
+@media (max-width:560px){.sheet{width:100%;max-width:none;height:100%;max-height:none;margin:0;border-radius:0;padding:calc(14px + env(safe-area-inset-top,0px)) 16px calc(14px + env(safe-area-inset-bottom,0px))}.sheet[open]{align-content:start}}
 .lg-form{display:flex;flex-wrap:wrap;gap:8px}
 .lg-form select,.lg-form input,#lg-team{padding:9px 11px;border:1px solid var(--line);border-radius:9px;background:var(--panel2);color:var(--ink);font:inherit;min-width:0}
 .lg-form input{flex:1 1 180px}
@@ -234,14 +251,32 @@ footer a{color:inherit}
   </header>
 
   <section class="league" id="league">
-    <div class="league-h"><h2>League sync</h2><span class="hint" id="lg-status">Load your Sleeper or ESPN league to get rest-of-season trade ideas.</span></div>
+    <div class="league-h"><h2>League sync</h2></div>
+    <div class="lg-bar" id="lg-bar"><span id="lg-bar-text">Connect your Sleeper or ESPN league to get rest-of-season trade ideas.</span><button class="btn" type="button" id="lg-open">Connect your league</button></div>
+    <div id="lg-body" hidden>
+      <div class="lg-team-row"><label class="ctl-label" for="lg-team" style="margin:0">Your team</label><select id="lg-team"></select><label class="ctl-label" for="lg-fair" style="margin:0">Fairness</label><select id="lg-fair"><option value="3">Dead even (±3%)</option><option value="6">Close (±6%)</option><option value="12">Loose (±12%)</option></select><label class="ctl-label" for="lg-shop" style="margin:0">Trade away</label><select id="lg-shop"><option value="">Any player</option></select><button class="tag clear" type="button" id="invite-link">Copy invite link</button><button class="tag clear desk-only" type="button" id="send-phone">Send to my phone</button></div>
+      <div class="qr-wrap" id="qr-box" hidden><div class="qr" id="qr"></div><p class="hint" id="qr-note" style="margin:0;text-align:center"></p><button class="tag clear" type="button" id="qr-close">Done</button></div>
+      <p class="hint" id="lg-meta"></p>
+      <div class="idea-tabs" id="idea-tabs" role="group" aria-label="Filter trade ideas by team" hidden></div>
+      <div id="ideas"></div>
+    </div>
+  </section>
+
+
+  <!-- Connect-your-league pop-up -->
+  <dialog class="sheet" id="connect-sheet" aria-labelledby="sheet-title">
+    <div class="sheet-h"><h2 id="sheet-title">Connect your league</h2><button class="sheet-x" type="button" id="sheet-close" aria-label="Close">✕</button></div>
+    <div class="plat-pick" role="group" aria-label="Where is your league?"><button type="button" data-plat="sleeper" aria-pressed="false">Sleeper</button><button type="button" data-plat="espn" aria-pressed="false">ESPN</button></div>
+    <div id="sheet-step2" hidden>
+    <p class="hint" id="sheet-help" style="margin:0"></p>
     <form class="lg-form" id="lg-form">
-      <select id="lg-plat" aria-label="Platform"><option value="sleeper">Sleeper</option><option value="espn">ESPN</option></select>
+      <select id="lg-plat" aria-label="Platform" hidden><option value="sleeper">Sleeper</option><option value="espn">ESPN</option></select>
       <input id="lg-id" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Sleeper username, league link, or league ID" aria-label="Sleeper username, league link, or league ID">
       <button class="btn" type="submit">Load league</button>
     </form>
+    <p class="hint" id="lg-status" aria-live="polite" style="margin:0"></p>
     <div class="lg-pick" id="lg-pick" hidden></div>
-    <details class="espn-connect" id="espn-connect">
+    <details class="espn-connect" id="espn-connect" hidden>
       <summary>Private ESPN league? Connect your ESPN login <span id="espn-state" class="hint"></span></summary>
       <div class="touch-only">
         <p class="hint" style="margin:6px 0">Easiest on a phone: connect on a computer, tap <b>Send to my phone</b> there, and scan the code. Or set it up right here:</p>
@@ -270,15 +305,8 @@ footer a{color:inherit}
       </div>
       <p class="hint">These work like your ESPN login session. They stay in this browser only and go straight to ESPN through this site's proxy, which doesn't store them. Only paste them into sites you trust.</p>
     </details>
-    <div id="lg-body" hidden>
-      <div class="lg-team-row"><label class="ctl-label" for="lg-team" style="margin:0">Your team</label><select id="lg-team"></select><label class="ctl-label" for="lg-fair" style="margin:0">Fairness</label><select id="lg-fair"><option value="3">Dead even (±3%)</option><option value="6">Close (±6%)</option><option value="12">Loose (±12%)</option></select><label class="ctl-label" for="lg-shop" style="margin:0">Trade away</label><select id="lg-shop"><option value="">Any player</option></select><button class="tag clear" type="button" id="invite-link">Copy invite link</button><button class="tag clear desk-only" type="button" id="send-phone">Send to my phone</button></div>
-      <div class="qr-wrap" id="qr-box" hidden><div class="qr" id="qr"></div><p class="hint" id="qr-note" style="margin:0;text-align:center"></p><button class="tag clear" type="button" id="qr-close">Done</button></div>
-      <p class="hint" id="lg-meta"></p>
-      <div class="idea-tabs" id="idea-tabs" role="group" aria-label="Filter trade ideas by team" hidden></div>
-      <div id="ideas"></div>
     </div>
-  </section>
-
+  </dialog>
   <section class="benches">
     <div class="bench" data-side="give">
       <div class="bench-h"><h2>You give</h2><div class="tot">Total <b id="tot-give">0</b></div></div>
@@ -620,7 +648,7 @@ function tradeIdeas(){
 }
 
 function renderLeague(){
-  const body=$("lg-body");if(!LG){body.hidden=true;return;}
+  updateBar();const body=$("lg-body");if(!LG){body.hidden=true;return;}
   body.hidden=false;
   const sel=$("lg-team");
   if(sel.dataset.key!==LG.platform+LG.id){sel.innerHTML=`<option value="">Pick your team…</option>`+LG.teams.map(t=>`<option value="${esc(t.id)}">${esc(t.name)}</option>`).join("");sel.dataset.key=LG.platform+LG.id;}
@@ -670,7 +698,7 @@ async function loadLeague(platform,id,quiet){
       if(hit){l.myTeam=hit.id;auto=true;}}
     LG=l;S.fmt=l.fmt;const n=l.teams.length;S.size=n<=11?10:n>=13?14:12;S.prem=PREM_DEF[S.size];
     try{localStorage.setItem("gtd-league",JSON.stringify({platform,id,myTeam:LG.myTeam}));}catch(e){}
-    st.textContent=`Loaded. Scoring and league size now match your league.`+(auto?" Your team was picked automatically.":"");$("lg-pick").hidden=true;
+    st.textContent=`Loaded. Scoring and league size now match your league.`+(auto?" Your team was picked automatically.":"");$("lg-pick").hidden=true;LG_ERR="";closeSheet();
     render();
   }catch(e){
     const m=e.message;
@@ -681,7 +709,8 @@ async function loadLeague(platform,id,quiet){
       :quiet?"Couldn't reload your saved league.":"Couldn't load that league. Check the ID and try again.";
     console.warn(`[League sync] ${platform} ${id}: ${why}`,e);
     st.textContent=why;st.classList.add("err");
-    if(m==="private")$("espn-connect").open=true;
+    if(m==="private"){setPlat("espn");$("espn-connect").open=true;}
+    if(quiet&&!SHEET.open){LG_ERR=why.replace(" below","");updateBar();}else openSheet(platform);
   }
 }
 
@@ -719,12 +748,32 @@ $("espn-save").addEventListener("click",()=>{const s2=$("espn-s2").value.trim(),
   $("lg-plat").value="espn";const id=$("lg-id").value.trim().replace(/\D/g,"");
   if(id)loadLeague("espn",id);else{st.classList.remove("err");st.textContent="ESPN login saved. Enter your ESPN league ID and click Load league.";}});
 $("espn-clear").addEventListener("click",()=>{try{localStorage.removeItem("gtd-espn");sessionStorage.removeItem("gtd-espn");}catch(e){}$("espn-s2").value="";$("espn-swid").value="";espnUI();$("lg-status").classList.remove("err");$("lg-status").textContent="ESPN login removed from this browser.";});
-if(location.hash==="#espn-connect"){$("espn-connect").open=true;setTimeout(()=>$("league").scrollIntoView({block:"start"}),0);}
+if(location.hash==="#espn-connect"){setTimeout(()=>{openSheet("espn");$("espn-connect").open=true;},0);}
 $("espn-bm-copy").addEventListener("click",async()=>{const code=$("espn-bm").getAttribute("href");const b=$("espn-bm-copy");
   try{await navigator.clipboard.writeText(code);b.textContent="Copied";}catch(e){$("espn-s2").value=code;$("espn-s2").select();b.textContent="Copy it from the box below";}
   setTimeout(()=>{b.textContent="Copy bookmark code";},3000);});
 $("espn-bm").addEventListener("click",e=>{e.preventDefault();$("lg-status").classList.remove("err");$("lg-status").textContent="Drag the yellow Copy ESPN login button to your bookmarks bar instead of clicking it.";});
 espnUI();
+
+// ----- Connect-your-league pop-up -----
+const SHEET=$("connect-sheet");
+const PLAT_HELP={sleeper:["Type your Sleeper username to see your leagues, or paste a league link.","Your Sleeper username or league link"],
+  espn:["Paste your league's web address from fantasy.espn.com, or just the leagueId number.","ESPN league link or league ID"]};
+function setPlat(p){$("lg-plat").value=p;document.querySelectorAll(".plat-pick button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.plat===p));
+  $("sheet-step2").hidden=false;$("sheet-help").textContent=PLAT_HELP[p][0];$("lg-id").placeholder=PLAT_HELP[p][1];$("lg-id").setAttribute("aria-label",PLAT_HELP[p][1]);
+  $("espn-connect").hidden=p!=="espn";if(p!=="sleeper")$("lg-pick").hidden=true;}
+function openSheet(p){const plat=p||(LG&&LG.platform)||"";if(plat)setPlat(plat);
+  if(!SHEET.open){try{SHEET.showModal();}catch(e){SHEET.setAttribute("open","");}}
+  setTimeout(()=>{(plat?$("lg-id"):SHEET.querySelector(".plat-pick button")).focus();},50);}
+function closeSheet(){if(SHEET.open)SHEET.close();}
+let LG_ERR="";function updateBar(errMsg){errMsg=errMsg||(!LG?LG_ERR:"");const bar=$("lg-bar"),txt=$("lg-bar-text"),btn=$("lg-open");bar.classList.remove("on","err");
+  if(errMsg){txt.textContent=errMsg;bar.classList.add("err");btn.textContent="Fix connection";return;}
+  if(!LG){txt.textContent="Connect your Sleeper or ESPN league to get rest-of-season trade ideas.";btn.textContent="Connect your league";return;}
+  const tm=LG.teams.find(x=>x.id===LG.myTeam);txt.textContent=`${LG.name} · ${LG.platform==="espn"?"ESPN":"Sleeper"} · ${tm?tm.name:"pick your team below"}`;bar.classList.add("on");btn.textContent="Change league";}
+$("lg-open").addEventListener("click",()=>openSheet());
+$("sheet-close").addEventListener("click",closeSheet);
+SHEET.addEventListener("click",e=>{if(e.target===SHEET)closeSheet();}); // tap outside the box to close
+SHEET.querySelector(".plat-pick").addEventListener("click",e=>{const b=e.target.closest("[data-plat]");if(!b)return;setPlat(b.dataset.plat);$("lg-status").textContent="";$("lg-status").classList.remove("err");$("lg-id").focus();});
 
 // Understands: an ESPN or Sleeper league link, a bare league ID (short = ESPN, ~18 digits = Sleeper), or a Sleeper username.
 function parseLeagueInput(raw){const s=String(raw||"").trim();if(!s)return null;
@@ -749,8 +798,8 @@ $("lg-pick").addEventListener("click",e=>{const b=e.target.closest("[data-lid]")
 $("lg-form").addEventListener("submit",e=>{e.preventDefault();const q=parseLeagueInput($("lg-id").value);if(!q)return;
   const st=$("lg-status");
   if(q.bad){st.textContent="That doesn't look like a league link, league ID, or Sleeper username.";st.classList.add("err");return;}
-  if(q.user)return findSleeperLeagues(q.user);
-  $("lg-plat").value=q.platform;$("lg-id").value=q.id;loadLeague(q.platform,q.id);});
+  if(q.user){setPlat("sleeper");return findSleeperLeagues(q.user);}
+  setPlat(q.platform);$("lg-id").value=q.id;loadLeague(q.platform,q.id);});
 $("invite-link").addEventListener("click",async()=>{if(!LG)return;const url=location.origin+location.pathname+"?league="+LG.platform+"-"+LG.id;const b=$("invite-link");
   try{await navigator.clipboard.writeText(url);b.textContent="Link copied";}catch(e){$("link-out").value=url;$("link-out").hidden=false;$("link-out").select();b.textContent="Copy the link above";}
   setTimeout(()=>{b.textContent="Copy invite link";},2500);});
