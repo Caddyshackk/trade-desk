@@ -66,6 +66,10 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-be
 .btn{border:0;border-radius:9px;padding:9px 14px;background:var(--ink);color:var(--bg);font-weight:600}
 #lg-body{display:grid;gap:10px}
 .lg-team-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.lg-pick{display:grid;gap:6px}
+.lg-pick button{display:flex;justify-content:space-between;gap:10px;text-align:left;border:1px solid var(--line);background:var(--panel2);color:var(--ink);border-radius:10px;padding:10px 12px;font-weight:600}
+.lg-pick button:hover{border-color:var(--flag)}
+.lg-pick small{color:var(--muted);font-weight:500}
 .idea-tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:thin}
 .idea-tabs button{flex:none;border:1px solid var(--line);background:var(--panel2);border-radius:999px;padding:6px 12px;font-size:13px;font-weight:600;white-space:nowrap;color:var(--ink)}
 .idea-tabs button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
@@ -233,9 +237,10 @@ footer a{color:inherit}
     <div class="league-h"><h2>League sync</h2><span class="hint" id="lg-status">Load your Sleeper or ESPN league to get rest-of-season trade ideas.</span></div>
     <form class="lg-form" id="lg-form">
       <select id="lg-plat" aria-label="Platform"><option value="sleeper">Sleeper</option><option value="espn">ESPN</option></select>
-      <input id="lg-id" inputmode="numeric" autocomplete="off" placeholder="League ID (from your league's URL)" aria-label="League ID">
+      <input id="lg-id" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Sleeper username, league link, or league ID" aria-label="Sleeper username, league link, or league ID">
       <button class="btn" type="submit">Load league</button>
     </form>
+    <div class="lg-pick" id="lg-pick" hidden></div>
     <details class="espn-connect" id="espn-connect">
       <summary>Private ESPN league? Connect your ESPN login <span id="espn-state" class="hint"></span></summary>
       <div class="touch-only">
@@ -266,7 +271,7 @@ footer a{color:inherit}
       <p class="hint">These work like your ESPN login session. They stay in this browser only and go straight to ESPN through this site's proxy, which doesn't store them. Only paste them into sites you trust.</p>
     </details>
     <div id="lg-body" hidden>
-      <div class="lg-team-row"><label class="ctl-label" for="lg-team" style="margin:0">Your team</label><select id="lg-team"></select><label class="ctl-label" for="lg-fair" style="margin:0">Fairness</label><select id="lg-fair"><option value="3">Dead even (±3%)</option><option value="6">Close (±6%)</option><option value="12">Loose (±12%)</option></select><label class="ctl-label" for="lg-shop" style="margin:0">Trade away</label><select id="lg-shop"><option value="">Any player</option></select><button class="tag clear desk-only" type="button" id="send-phone">Send to my phone</button></div>
+      <div class="lg-team-row"><label class="ctl-label" for="lg-team" style="margin:0">Your team</label><select id="lg-team"></select><label class="ctl-label" for="lg-fair" style="margin:0">Fairness</label><select id="lg-fair"><option value="3">Dead even (±3%)</option><option value="6">Close (±6%)</option><option value="12">Loose (±12%)</option></select><label class="ctl-label" for="lg-shop" style="margin:0">Trade away</label><select id="lg-shop"><option value="">Any player</option></select><button class="tag clear" type="button" id="invite-link">Copy invite link</button><button class="tag clear desk-only" type="button" id="send-phone">Send to my phone</button></div>
       <div class="qr-wrap" id="qr-box" hidden><div class="qr" id="qr"></div><p class="hint" id="qr-note" style="margin:0;text-align:center"></p><button class="tag clear" type="button" id="qr-close">Done</button></div>
       <p class="hint" id="lg-meta"></p>
       <div class="idea-tabs" id="idea-tabs" role="group" aria-label="Filter trade ideas by team" hidden></div>
@@ -536,7 +541,7 @@ async function loadSleeper(id){
   const DEF_BY_TEAM=new Map(P.filter(p=>p.pos==="DEF").map(p=>[p.tm,p.n]));
   const teams=rosters.map(r=>{const u=um.get(r.owner_id)||{};let miss=0;
     const names=(r.players||[]).map(pid=>{const raw=SLEEPER_IDS[pid]||DEF_BY_TEAM.get(pid);const n=raw?nameIndex().get(normName(raw))||null:null;if(!n)miss++;return n;}).filter(Boolean);
-    return{id:String(r.roster_id),name:(u.metadata&&u.metadata.team_name)||u.display_name||("Team "+r.roster_id),names,unmatched:miss};});
+    return{id:String(r.roster_id),name:(u.metadata&&u.metadata.team_name)||u.display_name||("Team "+r.roster_id),names,unmatched:miss,owners:[r.owner_id,...(r.co_owners||[])].filter(Boolean).map(String)};});
   const rec=lg.scoring_settings?lg.scoring_settings.rec:1;
   return{platform:"sleeper",id,name:lg.name||"Sleeper league",slots:slots.length?slots:DEFAULT_SLOTS,teams,fmt:slots.includes("SFLEX")?"sf":rec>=1?"ppr":rec>=0.5?"half":"std"};
 }
@@ -553,7 +558,7 @@ async function loadEspn(id){
   const teams=j.teams.map(t=>{let miss=0;
     const names=((t.roster&&t.roster.entries)||[]).map(e=>{const pl=(e.playerPoolEntry&&e.playerPoolEntry.player)||{};const pos=EPOS[pl.defaultPositionId];if(!pos){return null;}const n=matchName(pl.fullName,pos);if(!n)miss++;return n;}).filter(Boolean);
     const owner=members.get((t.owners||[])[0]);
-    return{id:String(t.id),name:t.name||[t.location,t.nickname].filter(Boolean).join(" ")||(owner&&owner.displayName)||("Team "+t.id),names,unmatched:miss};});
+    return{id:String(t.id),name:t.name||[t.location,t.nickname].filter(Boolean).join(" ")||(owner&&owner.displayName)||("Team "+t.id),names,unmatched:miss,owners:(t.owners||[]).map(o=>String(o).toUpperCase())};});
   const items=(j.settings&&j.settings.scoringSettings&&j.settings.scoringSettings.scoringItems)||[];
   const recItem=items.find(i=>i.statId===53);const rec=recItem?recItem.points:1;
   return{platform:"espn",id,name:(j.settings&&j.settings.name)||"ESPN league",slots:slots.length?slots:DEFAULT_SLOTS,teams,fmt:slots.includes("SFLEX")?"sf":rec>=1?"ppr":rec>=0.5?"half":"std"};
@@ -658,9 +663,14 @@ async function loadLeague(platform,id,quiet){
     const prev=LG&&LG.platform===platform&&LG.id===id?LG.myTeam:null;
     let saved=null;try{saved=JSON.parse(localStorage.getItem("gtd-league")||"null");}catch(e){}
     l.myTeam=prev||(saved&&saved.platform===platform&&saved.id===id?saved.myTeam:null);
+    // Auto-pick your team: Sleeper by the username you searched, ESPN by your connected login (SWID).
+    let auto=false;
+    if(!l.myTeam){const me=platform==="sleeper"?sleeperUserId():(espnCreds()||{}).swid;
+      const hit=me&&l.teams.find(tm=>(tm.owners||[]).includes(platform==="espn"?String(me).toUpperCase():String(me)));
+      if(hit){l.myTeam=hit.id;auto=true;}}
     LG=l;S.fmt=l.fmt;const n=l.teams.length;S.size=n<=11?10:n>=13?14:12;S.prem=PREM_DEF[S.size];
     try{localStorage.setItem("gtd-league",JSON.stringify({platform,id,myTeam:LG.myTeam}));}catch(e){}
-    st.textContent=`Loaded. Scoring and league size now match your league.`;
+    st.textContent=`Loaded. Scoring and league size now match your league.`+(auto?" Your team was picked automatically.":"");$("lg-pick").hidden=true;
     render();
   }catch(e){
     const m=e.message;
@@ -716,7 +726,34 @@ $("espn-bm-copy").addEventListener("click",async()=>{const code=$("espn-bm").get
 $("espn-bm").addEventListener("click",e=>{e.preventDefault();$("lg-status").classList.remove("err");$("lg-status").textContent="Drag the yellow Copy ESPN login button to your bookmarks bar instead of clicking it.";});
 espnUI();
 
-$("lg-form").addEventListener("submit",e=>{e.preventDefault();const id=$("lg-id").value.trim().replace(/\D/g,"");if(id)loadLeague($("lg-plat").value,id);});
+// Understands: an ESPN or Sleeper league link, a bare league ID (short = ESPN, ~18 digits = Sleeper), or a Sleeper username.
+function parseLeagueInput(raw){const s=String(raw||"").trim();if(!s)return null;
+  let m=s.match(/espn\.com\S*[?&]leagueId=(\d+)/i);if(m)return{platform:"espn",id:m[1]};
+  m=s.match(/sleeper\.(?:com|app)\/(?:leagues|league)\/(\d+)/i);if(m)return{platform:"sleeper",id:m[1]};
+  if(/^\d+$/.test(s))return{platform:s.length>=15?"sleeper":"espn",id:s};
+  if(/^[A-Za-z0-9_]{2,40}$/.test(s))return{platform:"sleeper",user:s};
+  return{bad:true};}
+function sleeperUserId(){try{return localStorage.getItem("gtd-sleeper-user")||"";}catch(e){return"";}}
+async function findSleeperLeagues(username){const st=$("lg-status"),box=$("lg-pick");st.classList.remove("err");st.textContent="Looking up "+username+"…";box.hidden=true;
+  try{const u=await getJSON(`https://api.sleeper.app/v1/user/${encodeURIComponent(username)}`);
+    if(!u||!u.user_id)throw new Error("nouser");
+    try{localStorage.setItem("gtd-sleeper-user",String(u.user_id));}catch(e){}
+    const leagues=await getJSON(`https://api.sleeper.app/v1/user/${u.user_id}/leagues/nfl/${SEASON}`)||[];
+    if(!leagues.length){st.textContent=`${u.display_name||username} has no Sleeper football leagues for ${SEASON}.`;st.classList.add("err");return;}
+    if(leagues.length===1){$("lg-plat").value="sleeper";$("lg-id").value=leagues[0].league_id;return loadLeague("sleeper",String(leagues[0].league_id));}
+    st.textContent=`Pick a league for ${u.display_name||username}:`;
+    box.innerHTML=leagues.map(l=>`<button type="button" data-lid="${esc(String(l.league_id))}">${esc(l.name||"League")}<small>${l.total_rosters||"?"} teams</small></button>`).join("");box.hidden=false;
+  }catch(e){const m=e.message;console.warn("[League sync] sleeper lookup",e);
+    st.textContent=m==="nouser"||m==="notfound"?`No Sleeper user named "${username}". Check the spelling (it's your Sleeper username, not your team name).`:"Couldn't reach Sleeper. Try again in a minute.";st.classList.add("err");}}
+$("lg-pick").addEventListener("click",e=>{const b=e.target.closest("[data-lid]");if(!b)return;$("lg-plat").value="sleeper";$("lg-id").value=b.dataset.lid;loadLeague("sleeper",b.dataset.lid);});
+$("lg-form").addEventListener("submit",e=>{e.preventDefault();const q=parseLeagueInput($("lg-id").value);if(!q)return;
+  const st=$("lg-status");
+  if(q.bad){st.textContent="That doesn't look like a league link, league ID, or Sleeper username.";st.classList.add("err");return;}
+  if(q.user)return findSleeperLeagues(q.user);
+  $("lg-plat").value=q.platform;$("lg-id").value=q.id;loadLeague(q.platform,q.id);});
+$("invite-link").addEventListener("click",async()=>{if(!LG)return;const url=location.origin+location.pathname+"?league="+LG.platform+"-"+LG.id;const b=$("invite-link");
+  try{await navigator.clipboard.writeText(url);b.textContent="Link copied";}catch(e){$("link-out").value=url;$("link-out").hidden=false;$("link-out").select();b.textContent="Copy the link above";}
+  setTimeout(()=>{b.textContent="Copy invite link";},2500);});
 let FAIR=3;try{const f=+localStorage.getItem("gtd-fair");if([3,6,12].includes(f))FAIR=f;}catch(e){}
 $("lg-fair").value=String(FAIR);
 $("lg-fair").addEventListener("change",e=>{FAIR=+e.target.value;try{localStorage.setItem("gtd-fair",String(FAIR));}catch(err){}renderLeague();});
@@ -725,6 +762,11 @@ $("lg-shop").addEventListener("change",e=>{SHOP=e.target.value;IDEA_TEAM="all";r
 $("lg-team").addEventListener("change",e=>{if(!LG)return;IDEA_TEAM="all";SHOP="";LG.myTeam=e.target.value||null;try{localStorage.setItem("gtd-league",JSON.stringify({platform:LG.platform,id:LG.id,myTeam:LG.myTeam}));}catch(err){}renderLeague();});
 $("ideas").addEventListener("click",e=>{const b=e.target.closest("[data-idea]");if(!b)return;const x=$("ideas")._ideas[+b.dataset.idea];if(!x)return;
   S.give=[...x.G];S.get=[...x.R];S.example=false;render();document.querySelector(".benches").scrollIntoView({behavior:"smooth",block:"start"});});
+// Invite links: ?league=espn-123 or ?league=sleeper-123 loads that league for whoever opens it (no logins in the link).
+(function invite(){const m=String(QS.get("league")||"").match(/^(espn|sleeper)-(\d{1,20})$/);if(!m)return;
+  try{const s=JSON.parse(localStorage.getItem("gtd-league")||"null");const same=s&&s.platform===m[1]&&s.id===m[2];
+    localStorage.setItem("gtd-league",JSON.stringify({platform:m[1],id:m[2],myTeam:same?s.myTeam:null}));}catch(e){}
+  history.replaceState(null,"",location.pathname+location.hash);})();
 try{const s=JSON.parse(localStorage.getItem("gtd-league")||"null");if(s&&s.id){$("lg-plat").value=s.platform;$("lg-id").value=s.id;setTimeout(()=>loadLeague(s.platform,s.id,true),0);}}catch(e){}
 
 
