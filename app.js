@@ -312,7 +312,8 @@ function renderLeague(){
   if(sel.dataset.key!==LG.platform+LG.id){sel.innerHTML=`<option value="">Pick your team…</option>`+LG.teams.map(t=>`<option value="${esc(t.id)}">${esc(t.name)}</option>`).join("");sel.dataset.key=LG.platform+LG.id;}
   sel.value=LG.myTeam||"";
   const miss=LG.teams.reduce((a,t)=>a+t.unmatched,0);
-  $("lg-meta").textContent=`${LG.name} · ${LG.teams.length} teams · ${LG.slots.join(", ")}`+(LG.snapAt?` · rosters from your ESPN bookmark, ${new Date(LG.snapAt).toLocaleString("en-US",{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})} (click it again on ESPN to refresh)`:"")+(miss?` · ${miss} rostered players have no value (IDP or deep bench) and are skipped`:"");
+  $("lg-meta").textContent=`${LG.name} · ${LG.teams.length} teams · ${LG.slots.join(", ")}`+(miss?` · ${miss} rostered players have no value (IDP or deep bench) and are skipped`:"");
+  freshUI();
   const box=$("ideas");
   if(!LG.myTeam){$("idea-tabs").hidden=true;box.innerHTML=`<p class="hint">Pick your team to see trade ideas.</p>`;return;}
   const me=LG.teams.find(tm=>tm.id===LG.myTeam),shopSel=$("lg-shop");
@@ -342,6 +343,14 @@ function renderLeague(){
 let IDEA_TEAM="all",SHOP="";
 let LT=0;function scheduleLeague(){clearTimeout(LT);LT=setTimeout(renderLeague,120);}
 
+// Private ESPN leagues come from the bookmark, so show how old those rosters are and a one-click way back to ESPN.
+// After 24 hours the line turns yellow.
+function ago(ms){const m=Math.max(0,Math.round(ms/60000));if(m<1)return"just now";if(m<60)return m+" min ago";const hr=Math.round(m/60);if(hr<24)return hr+(hr===1?" hour ago":" hours ago");const d=Math.round(hr/24);return d+(d===1?" day ago":" days ago");}
+function freshUI(){const box=$("lg-fresh");if(!LG||!LG.snapAt){box.hidden=true;return;}
+  const age=Date.now()-LG.snapAt,old=age>24*3600*1000;box.hidden=false;box.classList.toggle("old",old);
+  $("lg-fresh-text").textContent=(old?"Rosters may be out of date: ":"Rosters from your ESPN bookmark, ")+"updated "+ago(age)+(old?". Trades and pickups since then aren't shown.":".");
+  $("lg-espn-open").href="https://fantasy.espn.com/football/league?leagueId="+encodeURIComponent(LG.id);}
+$("lg-espn-open").addEventListener("click",()=>{const st=$("lg-status");st.classList.remove("err");st.textContent="On ESPN, click your Send to Trade Desk bookmark. Your new rosters will show here.";});
 async function loadLeague(platform,id,quiet){
   const st=$("lg-status");st.classList.remove("err");st.textContent="Loading league…";
   try{
@@ -505,6 +514,15 @@ renderField();setDate(DATA_DATE);render();refresh();
 const LOADED_AT = Date.now();
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible" && Date.now() - LOADED_AT > 60 * 60 * 1000) location.reload();
+});
+// Coming back to this tab: quietly reload the league so trades show up. Bookmark data is local (instant);
+// Sleeper and public ESPN go over the network, so at most once every 2 minutes.
+let LG_CHECKED = Date.now();
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState !== "visible" || !LG || Date.now() - LOADED_AT > 60 * 60 * 1000) return;
+  const local = LG.platform === "espn" && espnSnap(LG.id);
+  if (!local && Date.now() - LG_CHECKED < 2 * 60 * 1000) return;
+  LG_CHECKED = Date.now(); loadLeague(LG.platform, LG.id, true);
 });
 window.addEventListener("pageshow", e => { if (e.persisted) location.reload(); });
 

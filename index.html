@@ -245,6 +245,7 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-be
 .prem{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center}
 .prem input{width:100%;accent-color:var(--flag)}
 .hint{color:var(--muted);font-size:13px;margin:0}
+.lg-fresh{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:13px;color:var(--muted);margin:6px 0}.lg-fresh.old{color:#F5C542;border:1px solid #F5C54266;background:#F5C54214;border-radius:10px;padding:8px 10px}.lg-fresh a{text-decoration:none}
 
 /* Board */
 .board{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;display:grid;gap:10px}
@@ -377,6 +378,7 @@ footer a{color:inherit}
       <div class="lg-team-row"><label class="ctl-label" for="lg-team" style="margin:0">Your team</label><select id="lg-team"></select><label class="ctl-label" for="lg-fair" style="margin:0">Fairness</label><select id="lg-fair"><option value="3">Dead even (±3%)</option><option value="6">Close (±6%)</option><option value="12">Loose (±12%)</option></select><label class="ctl-label" for="lg-shop" style="margin:0">Trade away</label><select id="lg-shop"><option value="">Any player</option></select><button class="tag clear" type="button" id="invite-link">Copy invite link</button><button class="tag clear desk-only" type="button" id="send-phone">Send to my phone</button></div>
       <div class="qr-wrap" id="qr-box" hidden><div class="qr" id="qr"></div><p class="hint" id="qr-note" style="margin:0;text-align:center"></p><button class="tag clear" type="button" id="qr-close">Done</button></div>
       <p class="hint" id="lg-meta"></p>
+      <div class="lg-fresh" id="lg-fresh" hidden><span id="lg-fresh-text"></span><a class="tag clear" id="lg-espn-open" target="_blank" rel="noopener noreferrer">Update from ESPN</a></div>
       <div class="idea-tabs" id="idea-tabs" role="group" aria-label="Filter trade ideas by team" hidden></div>
       <div id="ideas"></div>
     </div>
@@ -508,7 +510,7 @@ footer a{color:inherit}
 </div>
 
 <script src="qrcode.js"></script>
-<script src="app.js?v=20261112"></script>
+<script src="app.js?v=20261112b"></script>
 
 </body>
 </html>
