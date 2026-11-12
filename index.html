@@ -126,6 +126,7 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-be
 #lg-status.err{color:var(--bad)}
 .espn-connect{border:1px dashed var(--line);border-radius:10px;padding:10px 12px}
 .espn-connect summary{cursor:pointer;font-weight:600}
+.espn-adv{border-top:1px dashed var(--line);padding-top:8px;display:grid;gap:8px}.espn-adv>summary{font-weight:500}
 .espn-connect ol{margin:8px 0;padding-left:20px;display:grid;gap:6px}
 .espn-connect .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px}
 .espn-connect input{flex:1 1 220px;min-width:0;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel2);color:var(--ink);font:12px var(--f-mono)}
@@ -397,16 +398,22 @@ footer a{color:inherit}
     <p class="hint" id="lg-status" aria-live="polite" style="margin:0"></p>
     <div class="lg-pick" id="lg-pick" hidden></div>
     <details class="espn-connect" id="espn-connect" hidden>
-      <summary>Private ESPN league? Connect your ESPN login <span id="espn-state" class="hint"></span></summary>
+      <summary>Private ESPN league? Bring it in with one click <span id="espn-state" class="hint"></span></summary>
+      <ol class="desk-only" style="margin:8px 0;padding-left:20px;display:grid;gap:6px">
+        <li>Drag this button to your bookmarks bar: <a class="bm" id="espn-bm2" href="#">Send to Trade Desk</a></li>
+        <li>On <b>fantasy.espn.com</b>, open your league (any page of it) while logged in, then click that bookmark.</li>
+        <li>Trade Desk opens with your league loaded. Click the bookmark again any time to refresh rosters.</li>
+      </ol>
       <div class="touch-only">
-        <p class="hint" style="margin:6px 0">Easiest on a phone: connect on a computer, tap <b>Send to my phone</b> there, and scan the code. Or set it up right here:</p>
-        <ol style="margin:6px 0;padding-left:20px;display:grid;gap:6px">
+        <ol style="margin:8px 0;padding-left:20px;display:grid;gap:6px">
           <li>Tap <button class="tag clear" type="button" id="espn-bm-copy">Copy bookmark code</button></li>
-          <li><b>iPhone (Safari):</b> bookmark any page (Share, then Add Bookmark). Open Bookmarks, tap Edit, open the new bookmark, and paste the code over its address. Name it <b>Copy ESPN login</b>.<br><b>Android (Chrome):</b> bookmark any page, then edit it the same way: name it <b>Copy ESPN login</b> and paste the code as the URL.</li>
-          <li>Open <b>espn.com</b> in the same browser (logged in on the website, not the ESPN app).<br><b>iPhone:</b> open Bookmarks and tap <b>Copy ESPN login</b>.<br><b>Android:</b> type <b>Copy ESPN login</b> in the address bar and tap the bookmark in the suggestions.</li>
-          <li>Come back here, tap <b>Paste</b>, then <b>Save &amp; connect</b>. If Paste is blocked, press and hold in the espn_s2 box and choose Paste.</li>
+          <li><b>iPhone (Safari):</b> bookmark any page (Share, then Add Bookmark). Open Bookmarks, tap Edit, open the new bookmark, paste the code over its address, and name it <b>Send to Trade Desk</b>.<br><b>Android (Chrome):</b> bookmark any page, then edit it the same way.</li>
+          <li>Open your league on <b>fantasy.espn.com</b> in the same browser (logged in on the website, not the ESPN app).<br><b>iPhone:</b> open Bookmarks and tap <b>Send to Trade Desk</b>.<br><b>Android:</b> type <b>Send to Trade Desk</b> in the address bar and tap the bookmark in the suggestions.</li>
+          <li>Trade Desk opens with your league loaded.</li>
         </ol>
       </div>
+      <p class="hint" style="margin:0">Your ESPN login never leaves ESPN: the bookmark reads your league on ESPN's own site and hands Trade Desk just the rosters and settings.</p>
+      <details class="espn-adv"><summary class="hint">Advanced: connect with your ESPN cookies instead</summary>
       <ol class="desk-only">
         <li>Drag this button to your bookmarks bar: <a class="bm" id="espn-bm" href="javascript:(()=&gt;{if(!/(^|\.)espn\.com$/.test(location.hostname)){alert(&quot;Open fantasy.espn.com (logged in), then click this bookmark.&quot;);return;} const all=document.cookie.split(/;\s*/);const get=n=&gt;all.filter(x=&gt;x.startsWith(n+&quot;=&quot;)).map(x=&gt;x.slice(n.length+1)).filter(Boolean); const s2=[...new Set(get(&quot;espn_s2&quot;))],sw=get(&quot;SWID&quot;)[0]||&quot;&quot;; if(!sw){alert(&quot;You don&#x27;t look logged in to ESPN. Log in, then click this bookmark again.&quot;);return;} const t=JSON.stringify({espn_s2:s2.join(&quot;,&quot;),SWID:sw,v:2}); const done=()=&gt;alert(!s2.length?&quot;Copied your SWID, but ESPN hides espn_s2 from bookmarks. Go back to Trade Desk, click Paste, then add espn_s2 by hand (steps are on the page).&quot;:s2.length&gt;1?&quot;Copied! ESPN had &quot;+s2.length+&quot; login cookies; Trade Desk will try each. Go back and click Paste.&quot;:&quot;Copied! Go back to Trade Desk and click Paste.&quot;); navigator.clipboard.writeText(t).then(done,()=&gt;prompt(&quot;Copy this, then paste it into Trade Desk:&quot;,t));})()">Copy ESPN login</a></li>
         <li>Open <b>fantasy.espn.com</b> while logged in and click that bookmark. It copies your login to the clipboard.</li>
@@ -424,6 +431,7 @@ footer a{color:inherit}
         <button class="tag clear" type="button" id="espn-clear">Disconnect ESPN</button><button class="tag clear" type="button" id="espn-test">Test connection</button>
       </div>
       <p class="hint">These work like your ESPN login session. They stay in this browser only and go straight to ESPN through this site's proxy, which doesn't store them. Only paste them into sites you trust.</p>
+      </details>
     </details>
     </div>
   </dialog>
@@ -753,9 +761,13 @@ async function loadSleeper(id){
   return{platform:"sleeper",id,name:lg.name||"Sleeper league",slots:slots.length?slots:DEFAULT_SLOTS,teams,fmt:slots.includes("SFLEX")?"sf":rec>=1?"ppr":rec>=0.5?"half":"std"};
 }
 
+// League data sent by the "Send to Trade Desk" bookmark (read on ESPN's own site, so no login is shared).
+function espnSnap(id){try{const s=JSON.parse(localStorage.getItem("gtd-espn-snap:"+id)||"null");return s&&s.data&&Array.isArray(s.data.teams)?s:null;}catch(e){return null;}}
 async function loadEspn(id){
-  if(!ESPN_PROXY)throw new Error("noproxy");
-  const ck=espnCreds();const j=await getJSON(`${ESPN_PROXY}?league=${encodeURIComponent(id)}&season=${SEASON}`,ck?{"X-ESPN-S2":ck.s2,"X-ESPN-SWID":ck.swid}:null);
+  const ck=espnCreds(),snap=espnSnap(id);let j,snapAt=null;
+  if(snap&&!ck){j=snap.data;snapAt=snap.at;} // no cookie login saved: use the bookmark data directly
+  else{try{if(!ESPN_PROXY)throw new Error("noproxy");j=await getJSON(`${ESPN_PROXY}?league=${encodeURIComponent(id)}&season=${SEASON}`,ck?{"X-ESPN-S2":ck.s2,"X-ESPN-SWID":ck.swid}:null);}
+    catch(e){if(snap){j=snap.data;snapAt=snap.at;}else throw e;}}
   if(!j||!Array.isArray(j.teams))throw new Error("notfound");
   const EPOS={1:"QB",2:"RB",3:"WR",4:"TE",5:"K",16:"DEF"};
   const ESLOT={0:"QB",2:"RB",4:"WR",6:"TE",23:"FLEX",3:"RB/WR",5:"WR/TE",7:"SFLEX",16:"DEF",17:"K"};
@@ -768,7 +780,7 @@ async function loadEspn(id){
     return{id:String(t.id),name:t.name||[t.location,t.nickname].filter(Boolean).join(" ")||(owner&&owner.displayName)||("Team "+t.id),names,unmatched:miss,owners:(t.owners||[]).map(o=>String(o).toUpperCase())};});
   const items=(j.settings&&j.settings.scoringSettings&&j.settings.scoringSettings.scoringItems)||[];
   const recItem=items.find(i=>i.statId===53);const rec=recItem?recItem.points:1;
-  return{platform:"espn",id,name:(j.settings&&j.settings.name)||"ESPN league",slots:slots.length?slots:DEFAULT_SLOTS,teams,fmt:slots.includes("SFLEX")?"sf":rec>=1?"ppr":rec>=0.5?"half":"std"};
+  return{platform:"espn",id,snapAt,me:j.me||null,name:(j.settings&&j.settings.name)||"ESPN league",slots:slots.length?slots:DEFAULT_SLOTS,teams,fmt:slots.includes("SFLEX")?"sf":rec>=1?"ppr":rec>=0.5?"half":"std"};
 }
 
 // Value of a roster = best legal starting lineup + a little credit for the top bench depth.
@@ -833,7 +845,7 @@ function renderLeague(){
   if(sel.dataset.key!==LG.platform+LG.id){sel.innerHTML=`<option value="">Pick your team…</option>`+LG.teams.map(t=>`<option value="${esc(t.id)}">${esc(t.name)}</option>`).join("");sel.dataset.key=LG.platform+LG.id;}
   sel.value=LG.myTeam||"";
   const miss=LG.teams.reduce((a,t)=>a+t.unmatched,0);
-  $("lg-meta").textContent=`${LG.name} · ${LG.teams.length} teams · ${LG.slots.join(", ")}`+(miss?` · ${miss} rostered players have no value (IDP or deep bench) and are skipped`:"");
+  $("lg-meta").textContent=`${LG.name} · ${LG.teams.length} teams · ${LG.slots.join(", ")}`+(LG.snapAt?` · rosters from your ESPN bookmark, ${new Date(LG.snapAt).toLocaleString("en-US",{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})} (click it again on ESPN to refresh)`:"")+(miss?` · ${miss} rostered players have no value (IDP or deep bench) and are skipped`:"");
   const box=$("ideas");
   if(!LG.myTeam){$("idea-tabs").hidden=true;box.innerHTML=`<p class="hint">Pick your team to see trade ideas.</p>`;return;}
   const me=LG.teams.find(tm=>tm.id===LG.myTeam),shopSel=$("lg-shop");
@@ -872,6 +884,7 @@ async function loadLeague(platform,id,quiet){
     l.myTeam=prev||(saved&&saved.platform===platform&&saved.id===id?saved.myTeam:null);
     // Auto-pick your team: Sleeper by the username you searched, ESPN by your connected login (SWID).
     let auto=false;
+    if(!l.myTeam&&l.me&&l.teams.some(tm=>tm.id===l.me)){l.myTeam=l.me;auto=true;}
     if(!l.myTeam){const me=platform==="sleeper"?sleeperUserId():(espnCreds()||{}).swid;
       const hit=me&&l.teams.find(tm=>(tm.owners||[]).includes(platform==="espn"?String(me).toUpperCase():String(me)));
       if(hit){l.myTeam=hit.id;auto=true;}}
@@ -894,6 +907,17 @@ async function loadLeague(platform,id,quiet){
 }
 
 // Phone setup link: #link=<base64> carries the league (and ESPN login, if saved) from a computer to a phone.
+// "Send to Trade Desk" bookmark arrives as #espn-data=<base64 JSON>: save it, select that league, clean the address bar.
+(function importEspn(){if(!location.hash.startsWith("#espn-data="))return;
+  try{const raw=location.hash.slice(11).replace(/-/g,"+").replace(/_/g,"/");const d=JSON.parse(decodeURIComponent(escape(atob(raw))));
+    if(d&&/^\d{1,12}$/.test(String(d.id))&&Array.isArray(d.teams)&&d.teams.length){const id=String(d.id);
+      localStorage.setItem("gtd-espn-snap:"+id,JSON.stringify({at:d.at||Date.now(),data:d}));
+      let prev=null;try{prev=JSON.parse(localStorage.getItem("gtd-league")||"null");}catch(e){}
+      const keep=prev&&prev.platform==="espn"&&prev.id===id?prev.myTeam:null;
+      localStorage.setItem("gtd-league",JSON.stringify({platform:"espn",id,myTeam:keep||(d.me?String(d.me):null)}));
+      try{sessionStorage.setItem("gtd-tab","ideas");}catch(e){}}
+  }catch(e){console.warn("[League sync] bad ESPN bookmark data",e);}
+  history.replaceState(null,"",location.pathname+location.search);})();
 (function importLink(){if(!location.hash.startsWith("#link="))return;
   try{const raw=location.hash.slice(6).replace(/-/g,"+").replace(/_/g,"/");const j=JSON.parse(decodeURIComponent(escape(atob(raw))));
     if(j.s2&&j.swid)localStorage.setItem("gtd-espn",JSON.stringify({s2:j.s2,swid:j.swid}));
@@ -939,7 +963,11 @@ $("espn-test").addEventListener("click",async()=>{const st=$("lg-status");st.cla
     const info=r.headers.get("X-Trade-Desk-Login")||"old Worker (redeploy it)";const n=c.s2.split(",").length;
     st.textContent=`ESPN answered ${r.status}${r.ok?" (working!)":r.status===401||r.status===403?" (login refused)":""} · saved login: ${n} cookie${n>1?"s":""}, ${c.s2.includes("%")?"encoded":"not encoded"}, length ${c.s2.length} · Worker: ${info}`;
     if(!r.ok)st.classList.add("err");}catch(e){st.textContent="Couldn't reach the Worker: "+e.message;st.classList.add("err");}});if(location.hash==="#espn-connect"){setTimeout(()=>{openSheet("espn");$("espn-connect").open=true;},0);}
-$("espn-bm-copy").addEventListener("click",async()=>{const code=$("espn-bm").getAttribute("href");const b=$("espn-bm-copy");
+// Build the "Send to Trade Desk" bookmark for whatever address this site is on (trade-desk.win, github.io...).
+const BM3="(async()=>{const T=\"__TARGET__\"; if(!/(^|\\.)espn\\.com$/.test(location.hostname)){alert(\"Open your league on fantasy.espn.com first, then click this bookmark.\");return;} const q=new URLSearchParams(location.search);let id=q.get(\"leagueId\"); if(!id){id=prompt(\"Your ESPN league ID (the leagueId number in your league's web address):\");if(!id)return;} id=String(id).replace(/\\D/g,\"\");const d=new Date();const season=q.get(\"seasonId\")||(d.getMonth()<2?d.getFullYear()-1:d.getFullYear()); let j;try{const r=await fetch(\"https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/\"+season+\"/segments/0/leagues/\"+id+\"?view=mTeam&view=mRoster&view=mSettings\",{credentials:\"include\"});if(!r.ok)throw new Error(\"ESPN said \"+r.status);j=await r.json();}catch(e){alert(\"Couldn't read league \"+id+\" from ESPN (\"+e.message+\"). Make sure you're logged in and you're in this league.\");return;} const sw=((document.cookie.match(/(?:^|;\\s*)SWID=([^;]+)/)||[])[1]||\"\").toUpperCase();const s=j.settings||{}; const out={v:3,id:id,season:+season,at:Date.now(),settings:{name:s.name,rosterSettings:{lineupSlotCounts:(s.rosterSettings||{}).lineupSlotCounts||{}},scoringSettings:{scoringItems:((s.scoringSettings||{}).scoringItems||[]).filter(i=>i.statId===53).map(i=>({statId:53,points:i.points}))}}, members:(j.members||[]).map(m=>({id:m.id,displayName:m.displayName})), teams:(j.teams||[]).map(t=>({id:t.id,name:t.name,location:t.location,nickname:t.nickname,owners:t.owners||[],roster:{entries:((t.roster||{}).entries||[]).map(e=>{const p=(e.playerPoolEntry||{}).player||{};return{playerPoolEntry:{player:{fullName:p.fullName,defaultPositionId:p.defaultPositionId}}};})}}))}; if(!out.teams.length){alert(\"ESPN returned no teams for league \"+id+\".\");return;} const me=out.teams.find(t=>t.owners.some(o=>String(o).toUpperCase()===sw));if(me)out.me=String(me.id); const b=btoa(unescape(encodeURIComponent(JSON.stringify(out)))).replace(/\\+/g,\"-\").replace(/\\//g,\"_\").replace(/=+$/,\"\"); const u=T+\"#espn-data=\"+b;const w=window.open(u,\"_blank\");if(!w)location.href=u;})()";
+$("espn-bm2").setAttribute("href","javascript:"+BM3.replace("__TARGET__",location.origin+location.pathname).replace(/%/g,"%25"));
+$("espn-bm2").addEventListener("click",e=>{e.preventDefault();$("lg-status").classList.remove("err");$("lg-status").textContent="Drag the yellow Send to Trade Desk button to your bookmarks bar instead of clicking it.";});
+$("espn-bm-copy").addEventListener("click",async()=>{const code=$("espn-bm2").getAttribute("href");const b=$("espn-bm-copy");
   try{await navigator.clipboard.writeText(code);b.textContent="Copied";}catch(e){$("espn-s2").value=code;$("espn-s2").select();b.textContent="Copy it from the box below";}
   setTimeout(()=>{b.textContent="Copy bookmark code";},3000);});
 $("espn-bm").addEventListener("click",e=>{e.preventDefault();$("lg-status").classList.remove("err");$("lg-status").textContent="Drag the yellow Copy ESPN login button to your bookmarks bar instead of clicking it.";});
