@@ -179,6 +179,15 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-be
 .ovr.t-waiver{background:linear-gradient(160deg,#5B6270,#3B414C);color:#C9CED6}
 .chip .ovr{height:24px;min-width:28px;font-size:15px;padding-bottom:4px}
 .card .ovr{height:34px;min-width:38px;font-size:21px}
+.board td:first-child,.board th:first-child{width:1%;padding-right:4px}
+.board td:nth-child(3),.board td:nth-child(4),.board th:nth-child(3),.board th:nth-child(4){width:1%;white-space:nowrap;padding-inline:14px}
+.sos{display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:999px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap;border:1px solid transparent}
+.sos.easy{background:color-mix(in srgb,var(--good) 16%,transparent);color:var(--good);border-color:color-mix(in srgb,var(--good) 35%,transparent)}
+.sos.avg{background:var(--panel2);color:var(--muted);border-color:var(--line)}
+.sos.hard{background:color-mix(in srgb,var(--bad) 14%,transparent);color:var(--bad);border-color:color-mix(in srgb,var(--bad) 35%,transparent)}
+.sos .rk{font-family:var(--f-mono);font-weight:600;letter-spacing:0;opacity:.85}
+.sm-only{display:none}
+@media (max-width:560px){.sm-only{display:inline-flex}}
 .pl{display:flex;align-items:center;gap:10px;min-width:0}
 .pl .ovr{height:34px;min-width:38px;font-size:21px}
 .pl-who{display:grid;gap:2px;min-width:0}
@@ -382,7 +391,7 @@ footer a{color:inherit}
     <div class="ovr-legend"><span><span class="ovr t-elite">90</span> Elite</span><span><span class="ovr t-star">85</span> Star</span><span><span class="ovr t-starter">78</span> Starter</span><span><span class="ovr t-flex">70</span> Flex</span><span><span class="ovr t-bench">60</span> Bench</span><span><span class="ovr t-waiver">50</span> Waiver</span><span>· 99 = most valuable player in this format</span></div>
     <div class="tbl-wrap">
       <table>
-        <thead><tr><th class="r">#</th><th>Player</th><th class="hide-sm">30-day</th><th class="r">Add</th></tr></thead>
+        <thead><tr><th class="r">#</th><th>Player</th><th class="hide-sm">30-day</th><th class="hide-sm" title="Remaining strength of schedule (rest of season). Hover a chip for the playoff weeks.">SOS</th><th class="r">Add</th></tr></thead>
         <tbody id="tb"></tbody>
       </table>
     </div>
@@ -442,7 +451,7 @@ async function refresh(){
     const r=await fetch("values.json",{cache:"no-store"});if(!r.ok)return;
     const j=await r.json();if(!Array.isArray(j.players)||j.players.length<50||!Array.isArray(j.players[0][4]))return;
     const give=S.give.map(i=>P[i].n),get=S.get.map(i=>P[i].n);
-    P=toP(j.players);NAME_IX=null;if(j.sleeper)Object.assign(SLEEPER_IDS,j.sleeper);S.give=idsFromNames(give);S.get=idsFromNames(get);
+    P=toP(j.players);NAME_IX=null;if(j.sleeper)Object.assign(SLEEPER_IDS,j.sleeper);if(j.sos&&Object.keys(j.sos).length>=30)SOS=j.sos;S.give=idsFromNames(give);S.get=idsFromNames(get);
     if(j.updated)setDate(j.updated);render();if(LG)loadLeague(LG.platform,LG.id,true);
   }catch(e){}
 }
@@ -464,6 +473,13 @@ function adj(ids){if(!ids.length)return 0;const k=pw();return Math.pow(ids.reduc
 function raw(ids){return ids.reduce((a,i)=>a+val(P[i]),0);}
 function save(){try{localStorage.setItem("gtd-state-v2",JSON.stringify({...S,give:S.give.map(i=>P[i].n),get:S.get.map(i=>P[i].n)}));}catch(e){}}
 function esc(s){return s.replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+// Remaining strength of schedule by team and position: [rest-of-season rank, playoff (wk 15-17) rank, games left].
+// 1 = easiest of 32. Refreshed daily into values.json by the updater; this is the built-in snapshot (Nov 12, 2026).
+let SOS={"IND":{"QB":[5,17,7],"RB":[20,18,7],"WR":[3,8,7],"TE":[19,13,7]},"KC":{"QB":[11,19,8],"RB":[17,22,8],"WR":[11,7,8],"TE":[27,27,8]},"LV":{"QB":[20,2,7],"RB":[15,14,7],"WR":[20,9,7],"TE":[12,9,7]},"LAR":{"QB":[31,30,7],"RB":[23,28,7],"WR":[30,27,7],"TE":[17,22,7]},"MIA":{"QB":[13,24,8],"RB":[1,2,8],"WR":[14,2,8],"TE":[21,30,8]},"MIN":{"QB":[9,1,8],"RB":[10,25,8],"WR":[5,11,8],"TE":[9,1,8]},"NE":{"QB":[25,22,7],"RB":[16,10,7],"WR":[26,31,7],"TE":[3,3,7]},"NO":{"QB":[15,16,8],"RB":[4,26,8],"WR":[16,16,8],"TE":[18,11,8]},"NYG":{"QB":[17,5,8],"RB":[27,16,8],"WR":[22,10,8],"TE":[6,2,8]},"NYJ":{"QB":[18,23,7],"RB":[13,30,7],"WR":[18,14,7],"TE":[16,24,7]},"PHI":{"QB":[21,29,7],"RB":[14,20,7],"WR":[23,26,7],"TE":[24,25,7]},"ARI":{"QB":[8,3,7],"RB":[12,1,7],"WR":[21,20,7],"TE":[7,7,7]},"PIT":{"QB":[12,10,8],"RB":[18,8,8],"WR":[2,5,8],"TE":[20,19,8]},"LAC":{"QB":[19,25,8],"RB":[22,15,8],"WR":[27,32,8],"TE":[8,5,8]},"SF":{"QB":[30,20,8],"RB":[29,24,8],"WR":[29,12,8],"TE":[31,23,8]},"SEA":{"QB":[2,13,7],"RB":[9,13,7],"WR":[17,13,7],"TE":[25,26,7]},"TB":{"QB":[4,14,7],"RB":[5,4,7],"WR":[10,21,7],"TE":[13,18,7]},"WAS":{"QB":[16,32,8],"RB":[28,23,8],"WR":[4,22,8],"TE":[29,31,8]},"CAR":{"QB":[32,31,8],"RB":[19,29,8],"WR":[31,30,8],"TE":[14,20,8]},"JAX":{"QB":[3,4,8],"RB":[25,11,8],"WR":[1,1,8],"TE":[26,14,8]},"BAL":{"QB":[28,28,7],"RB":[21,27,7],"WR":[12,25,7],"TE":[23,12,7]},"HOU":{"QB":[26,27,8],"RB":[26,21,8],"WR":[8,3,8],"TE":[22,32,8]},"ATL":{"QB":[29,18,7],"RB":[30,19,7],"WR":[28,15,7],"TE":[2,4,7]},"BUF":{"QB":[14,9,8],"RB":[3,7,8],"WR":[32,29,8],"TE":[11,6,8]},"CHI":{"QB":[6,12,7],"RB":[11,9,7],"WR":[6,6,7],"TE":[1,8,7]},"CIN":{"QB":[23,11,8],"RB":[6,3,8],"WR":[25,17,8],"TE":[5,15,8]},"CLE":{"QB":[1,6,7],"RB":[8,17,7],"WR":[9,19,7],"TE":[15,17,7]},"DAL":{"QB":[27,21,7],"RB":[32,32,7],"WR":[19,24,7],"TE":[32,28,7]},"DEN":{"QB":[7,7,7],"RB":[2,6,7],"WR":[15,4,7],"TE":[10,16,7]},"DET":{"QB":[24,26,8],"RB":[31,31,8],"WR":[13,28,8],"TE":[30,29,8]},"GB":{"QB":[22,8,7],"RB":[7,12,7],"WR":[24,18,7],"TE":[28,21,7]},"TEN":{"QB":[10,15,8],"RB":[24,5,8],"WR":[7,23,8],"TE":[4,10,8]}};
+const ordinal=n=>n+(["th","st","nd","rd"][(n%100-20)%10]||["th","st","nd","rd"][n%100]||"th");
+function sosChip(p){const r=SOS&&SOS[p.tm]&&SOS[p.tm][p.pos];if(!r||!r[0])return `<span class="sos avg" title="No schedule data">—</span>`;
+  const [ros,po,left]=r;const c=ros<=8?"easy":ros>=25?"hard":"avg";const w=c==="easy"?"Easy":c==="hard"?"Hard":"Avg";
+  return `<span class="sos ${c}" title="${p.tm} ${p.pos} schedule, rest of season: ${ordinal(ros)} of 32 (1st = easiest), ${left} games left${po?` · Fantasy playoffs (wk 15–17): ${ordinal(po)} of 32`:""}">${w} <span class="rk">${ordinal(ros)}</span></span>`;}
 // 30-day trend as a word (no value numbers shown): big moves get a double arrow.
 function trend(t){if(t==null)return `<span class="tr fl">—</span>`;const c=t>50?"up":t<-50?"dn":"fl";
   const a=t>1500?"▲▲ Hot":t>50?"▲ Rising":t<-1500?"▼▼ Cold":t<-50?"▼ Falling":"■ Steady";return `<span class="tr ${c}">${a}</span>`;}
@@ -513,7 +529,7 @@ function renderBoard(){
   const posRank={};
   const rows=list.map((p,ix)=>{posRank[p.pos]=(posRank[p.pos]||0)+1;return{p,rank:ix+1,pr:posRank[p.pos]};})
     .filter(o=>(posF==="ALL"||o.p.pos===posF)&&(!q||o.p.n.toLowerCase().includes(q)));
-  $("tb").innerHTML=rows.map(({p,rank,pr})=>{const t=inTrade(p.id);return `<tr><td class="r num">${rank}</td><td><div class="pl">${ovrBadge(p)}<div class="pl-who"><b>${esc(p.n)}</b><small><span class="pos ${p.pos}">${p.pos}${pr}</span> ${p.tm}${p.age?" · "+p.age+" yrs":""}</small></div></div></td><td class="hide-sm">${trend(p.tr)}</td><td class="r"><button class="add" data-add="give:${p.id}" ${t?"disabled":""}>Give</button> <button class="add" data-add="get:${p.id}" ${t?"disabled":""}>Get</button></td></tr>`}).join("")||`<tr><td colspan="4" style="color:var(--muted)">No players match.</td></tr>`;
+  $("tb").innerHTML=rows.map(({p,rank,pr})=>{const t=inTrade(p.id);return `<tr><td class="r num">${rank}</td><td><div class="pl">${ovrBadge(p)}<div class="pl-who"><b>${esc(p.n)}</b><small><span class="pos ${p.pos}">${p.pos}${pr}</span> ${p.tm}${p.age?" · "+p.age+" yrs":""} <span class="sm-only">${sosChip(p)}</span></small></div></div></td><td class="hide-sm">${trend(p.tr)}</td><td class="hide-sm">${sosChip(p)}</td><td class="r"><button class="add" data-add="give:${p.id}" ${t?"disabled":""}>Give</button> <button class="add" data-add="get:${p.id}" ${t?"disabled":""}>Get</button></td></tr>`}).join("")||`<tr><td colspan="5" style="color:var(--muted)">No players match.</td></tr>`;
 }
 
 function renderField(){
