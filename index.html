@@ -10,6 +10,14 @@
 <style>html.framed{display:none!important}</style>
 <script>/* Security: refuse to run inside another site's frame (clickjacking). */if(window.top!==window.self){document.documentElement.className+=" framed";try{window.top.location=window.self.location.href;}catch(e){}}</script>
 <title>Gridiron Trade Desk</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<meta name="theme-color" content="#0F1B2D">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Trade Desk">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=Barlow:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
@@ -220,6 +228,56 @@ td .add:hover{border-color:var(--flag);background:var(--panel2)}
 td .add:disabled{opacity:.35;cursor:default}
 .bar{display:inline-block;height:6px;border-radius:3px;background:var(--flag);vertical-align:middle;margin-right:8px}
 @media (max-width:560px){.hide-sm{display:none}}
+/* ===== Phone app shell (only when the screen is 720px or narrower: body.m) ===== */
+.m-only{display:none!important}
+.help{border:1px solid var(--line);background:var(--panel2);color:var(--muted);width:24px;height:24px;border-radius:50%;font:700 13px var(--f-body);vertical-align:middle;margin-left:6px}
+.more-panel{display:none}
+body.m{padding-bottom:calc(132px + env(safe-area-inset-bottom,0px));padding-top:calc(12px + env(safe-area-inset-top,0px))}
+body.m .m-only{display:revert!important}
+body.m .mini-verdict.m-only,body.m .tabbar.m-only{display:flex!important}
+body.m:not([data-tab="trade"]) [data-tab="trade"],body.m:not([data-tab="ideas"]) [data-tab="ideas"],body.m:not([data-tab="players"]) [data-tab="players"],body.m:not([data-tab="more"]) [data-tab="more"]{display:none!important}
+body.m .more-panel{display:grid;gap:14px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px}
+body.m .more-panel h2{font-family:var(--f-display);font-weight:700;font-size:26px;text-transform:uppercase;letter-spacing:.03em;margin:0}
+body.m .more-panel .ctls{display:grid;gap:12px}
+body.m .more-panel .seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;width:100%}
+body.m header{align-items:center}
+body.m .brand h1{font-size:28px;line-height:1}
+body.m .brand p{font-size:12px;margin-top:4px}
+body.m .wrap{gap:12px}
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:40;justify-content:space-around;background:var(--panel);border-top:1px solid var(--line);padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px))}
+.tabbar button{flex:1;display:grid;justify-items:center;gap:2px;border:0;background:transparent;color:var(--muted);font:600 11px var(--f-body);letter-spacing:.04em;text-transform:uppercase;padding:6px 0;border-radius:10px;min-height:52px}
+.tabbar svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.tabbar svg circle{fill:currentColor;stroke:none}
+.tabbar button[aria-current="page"]{color:var(--ink);background:var(--panel2)}
+.tabbar button[aria-current="page"] svg{stroke:var(--flag)}
+.tabbar button[aria-current="page"] svg circle{fill:var(--flag)}
+.mini-verdict{position:fixed;left:10px;right:10px;bottom:calc(72px + env(safe-area-inset-bottom,0px));z-index:39;align-items:center;gap:8px;padding:8px 12px;border-radius:14px;border:1px solid var(--line);background:var(--panel);color:var(--ink);box-shadow:0 8px 24px rgba(5,15,30,.22);font:inherit;text-align:left}
+.mini-verdict .ovr{height:28px;min-width:32px;font-size:17px}
+.mini-verdict .mv-vs{font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700}
+.mini-verdict b{flex:1;min-width:0;font-family:var(--f-display);font-size:18px;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mini-verdict .mv-go{font-size:22px;color:var(--muted)}
+body.m:not([data-tab="trade"]) .mini-verdict,body.m.mv-hide .mini-verdict{display:none!important}
+body.m .board-h{position:sticky;top:0;z-index:5;background:var(--panel);padding:10px 0 8px;margin-top:-6px}
+body.m .tbl-wrap{max-height:none;overflow:visible}
+body.m .board thead,body.m .board th:last-child,body.m .board td:last-child{display:none}
+body.m #tb tr{cursor:pointer}
+body.m #tb td:nth-child(2){position:relative;padding-right:22px}
+body.m #tb td:nth-child(2)::after{content:"›";position:absolute;right:6px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:20px}
+body.m .ovr-legend{display:none}body.m .ovr-legend.show{display:flex}
+.psheet{border:0;padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px));margin:auto 0 0;width:100%;max-width:none;border-radius:18px 18px 0 0;background:var(--panel);color:var(--ink)}
+.psheet[open]{display:grid;gap:14px}
+.psheet::backdrop{background:rgba(5,10,20,.55)}
+.ps-top{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center}
+.ps-top .ovr{height:46px;min-width:52px;font-size:28px}
+.ps-top h3{margin:0;font-size:20px}
+.ps-facts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ps-facts>div{display:grid;gap:4px;padding:10px 12px;border-radius:10px;background:var(--panel2)}
+.ps-facts .k{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.ps-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ps-actions .btn{min-height:48px}
+.ps-actions .btn:disabled{opacity:.4}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(140px + env(safe-area-inset-bottom,0px));z-index:60;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:999px;font-weight:600;font-size:14px;box-shadow:0 8px 24px rgba(5,15,30,.3);max-width:calc(100% - 32px);text-align:center}
+body:not(.m) .toast{bottom:24px}
 footer{color:var(--muted);font-size:12px;line-height:1.5}
 
 /* Phone / touch */
@@ -278,7 +336,7 @@ footer a{color:inherit}
     </div>
   </header>
 
-  <section class="league" id="league">
+  <section class="league" id="league" data-tab="ideas">
     <div class="league-h"><h2>League sync</h2></div>
     <div class="lg-bar" id="lg-bar"><span id="lg-bar-text">Connect your Sleeper or ESPN league to get rest-of-season trade ideas.</span><button class="btn" type="button" id="lg-open">Connect your league</button></div>
     <div id="lg-body" hidden>
@@ -335,7 +393,7 @@ footer a{color:inherit}
     </details>
     </div>
   </dialog>
-  <section class="benches">
+  <section class="benches" data-tab="trade">
     <div class="bench" data-side="give">
       <div class="bench-h"><h2>You give</h2><div class="tot">Package <span id="tot-give"></span></div></div>
       <div class="search"><input id="q-give" type="search" placeholder="Add a player you'd send…" autocomplete="off" aria-label="Search players to give"><div class="dd" id="dd-give" hidden></div></div>
@@ -348,7 +406,7 @@ footer a{color:inherit}
     </div>
   </section>
 
-  <section class="verdict" aria-live="polite">
+  <section class="verdict" aria-live="polite" data-tab="trade">
     <div class="v-top">
       <div>
         <div id="ex-tag" hidden><span class="tag">Example trade</span> <button class="tag clear" id="clear-ex">Clear</button></div>
@@ -380,15 +438,15 @@ footer a{color:inherit}
     </div>
   </section>
 
-  <section class="board">
+  <section class="board" data-tab="players">
     <div class="board-h">
-      <h2>Value board</h2>
+      <h2>Value board <button class="help m-only" type="button" data-help="ovr-legend" aria-label="What do the ratings mean?">?</button></h2>
       <div class="seg" role="group" aria-label="Filter by position" id="posf">
         <button data-p="ALL">All</button><button data-p="QB">QB</button><button data-p="RB">RB</button><button data-p="WR">WR</button><button data-p="TE">TE</button><button data-p="K">K</button><button data-p="DEF">DEF</button>
       </div>
       <input id="bq" type="search" placeholder="Filter players" aria-label="Filter value board">
     </div>
-    <div class="ovr-legend"><span><span class="ovr t-elite">90</span> Elite</span><span><span class="ovr t-star">85</span> Star</span><span><span class="ovr t-starter">78</span> Starter</span><span><span class="ovr t-flex">70</span> Flex</span><span><span class="ovr t-bench">60</span> Bench</span><span><span class="ovr t-waiver">50</span> Waiver</span><span>· 99 = most valuable player in this format</span></div>
+    <div class="ovr-legend" id="ovr-legend"><span><span class="ovr t-elite">90</span> Elite</span><span><span class="ovr t-star">85</span> Star</span><span><span class="ovr t-starter">78</span> Starter</span><span><span class="ovr t-flex">70</span> Flex</span><span><span class="ovr t-bench">60</span> Bench</span><span><span class="ovr t-waiver">50</span> Waiver</span><span>· 99 = most valuable player in this format</span></div>
     <div class="tbl-wrap">
       <table>
         <thead><tr><th class="r">#</th><th>Player</th><th class="hide-sm">30-day</th><th class="hide-sm" title="Remaining strength of schedule (rest of season). Hover a chip for the playoff weeks.">SOS</th><th class="r">Add</th></tr></thead>
@@ -397,9 +455,32 @@ footer a{color:inherit}
     </div>
   </section>
 
-  <footer>
+  <section class="more-panel" data-tab="more">
+    <h2>Settings</h2>
+    <div id="more-ctls"></div>
+    <div id="more-prem"></div>
+    <p class="hint">Tip: add Trade Desk to your home screen. iPhone: Share, then Add to Home Screen. Android: menu ⋮, then Add to Home screen. It opens full screen like an app.</p>
+  </section>
+
+  <footer data-tab="more">
     Values are FantasyCalc's redraft market values for 10-, 12- and 14-team leagues (1QB unless Superflex), built from real fantasy trades. The 30-day trend is from PPR. Kicker and defense values are this tool's own scale, ranked by rest-of-season projected points, since the trade market rarely prices them; they are the same in every scoring format and scale with league size. The stud premium is this tool's own adjustment, not FantasyCalc's; it defaults higher in smaller leagues, where the waiver wire is deeper. Values refresh daily.
   </footer>
+
+  <!-- Phone-only app shell -->
+  <button class="mini-verdict m-only" type="button" id="mini-verdict" aria-label="Show the full verdict"><span id="mv-give"></span><span class="mv-vs">vs</span><span id="mv-get"></span><b id="mv-call">Build the deal</b><span class="mv-go">›</span></button>
+  <nav class="tabbar m-only" aria-label="Sections">
+    <button type="button" data-go="trade"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h12l-3-3M17 17H5l3 3"/></svg>Trade</button>
+    <button type="button" data-go="ideas"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.7.7 1 1.5 1 2.5h6c0-1 .3-1.8 1-2.5A6 6 0 0 0 12 3z"/></svg>Ideas</button>
+    <button type="button" data-go="players"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>Players</button>
+    <button type="button" data-go="more"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>More</button>
+  </nav>
+  <dialog class="psheet" id="player-sheet" aria-labelledby="ps-name">
+    <div class="ps-top"><span id="ps-badge"></span><div><h3 id="ps-name"></h3><p class="hint" id="ps-meta" style="margin:0"></p></div><button class="sheet-x" type="button" id="ps-close" aria-label="Close">✕</button></div>
+    <div class="ps-facts"><div><span class="k">30-day</span><span id="ps-trend"></span></div><div><span class="k">Schedule left</span><span id="ps-sos"></span></div></div>
+    <p class="hint" id="ps-sos-text" style="margin:0"></p>
+    <div class="ps-actions"><button class="btn" type="button" id="ps-give">Add to You give</button><button class="btn" type="button" id="ps-get">Add to You get</button></div>
+  </dialog>
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 </div>
 
 <script>/* QR Code Generator for JavaScript, (c) 2009 Kazuhiko Arase, MIT license, https://github.com/kazuhikoarase/qrcode-generator */
@@ -484,7 +565,7 @@ function sosChip(p){const r=SOS&&SOS[p.tm]&&SOS[p.tm][p.pos];if(!r||!r[0])return
 function trend(t){if(t==null)return `<span class="tr fl">—</span>`;const c=t>50?"up":t<-50?"dn":"fl";
   const a=t>1500?"▲▲ Hot":t>50?"▲ Rising":t<-1500?"▼▼ Cold":t<-50?"▼ Falling":"■ Steady";return `<span class="tr ${c}">${a}</span>`;}
 function inTrade(i){return S.give.includes(i)||S.get.includes(i);}
-function add(side,i){if(inTrade(i))return;S[side].push(i);S.example=false;render();}
+function add(side,i){if(inTrade(i))return;S[side].push(i);S.example=false;render();if(typeof phoneAdded==="function")phoneAdded(side,i);}
 function remove(side,i){S[side]=S[side].filter(x=>x!==i);S.example=false;render();}
 
 function renderRoster(side){
@@ -506,7 +587,7 @@ function renderVerdict(){
     else{call=a<.15?"Slight edge: them":a<.3?"They win this trade":"Hard pass";sub=a<.3?"You're giving up more than you get back.":"This one gets you fleeced.";}
     sub+=` ${S.size}-team ${FMT_NAME[S.fmt]} values.`;
   }
-  $("call").textContent=call;$("sub").textContent=sub;
+  $("call").textContent=call;$("mv-give").innerHTML=pkgBadge(S.give);$("mv-get").innerHTML=pkgBadge(S.get);$("mv-call").textContent=call;$("sub").textContent=sub;
   const pos=Math.max(3,Math.min(97,50+50*pct));
   $("ball").style.left=pos+"%";$("flagline").style.left=pos+"%";
   // balancer
@@ -529,7 +610,7 @@ function renderBoard(){
   const posRank={};
   const rows=list.map((p,ix)=>{posRank[p.pos]=(posRank[p.pos]||0)+1;return{p,rank:ix+1,pr:posRank[p.pos]};})
     .filter(o=>(posF==="ALL"||o.p.pos===posF)&&(!q||o.p.n.toLowerCase().includes(q)));
-  $("tb").innerHTML=rows.map(({p,rank,pr})=>{const t=inTrade(p.id);return `<tr><td class="r num">${rank}</td><td><div class="pl">${ovrBadge(p)}<div class="pl-who"><b>${esc(p.n)}</b><small><span class="pos ${p.pos}">${p.pos}${pr}</span> ${p.tm}${p.age?" · "+p.age+" yrs":""} <span class="sm-only">${sosChip(p)}</span></small></div></div></td><td class="hide-sm">${trend(p.tr)}</td><td class="hide-sm">${sosChip(p)}</td><td class="r"><button class="add" data-add="give:${p.id}" ${t?"disabled":""}>Give</button> <button class="add" data-add="get:${p.id}" ${t?"disabled":""}>Get</button></td></tr>`}).join("")||`<tr><td colspan="5" style="color:var(--muted)">No players match.</td></tr>`;
+  $("tb").innerHTML=rows.map(({p,rank,pr})=>{const t=inTrade(p.id);return `<tr data-pid="${p.id}"><td class="r num">${rank}</td><td><div class="pl">${ovrBadge(p)}<div class="pl-who"><b>${esc(p.n)}</b><small><span class="pos ${p.pos}">${p.pos}${pr}</span> ${p.tm}${p.age?" · "+p.age+" yrs":""} <span class="sm-only">${sosChip(p)}</span></small></div></div></td><td class="hide-sm">${trend(p.tr)}</td><td class="hide-sm">${sosChip(p)}</td><td class="r"><button class="add" data-add="give:${p.id}" ${t?"disabled":""}>Give</button> <button class="add" data-add="get:${p.id}" ${t?"disabled":""}>Get</button></td></tr>`}).join("")||`<tr><td colspan="5" style="color:var(--muted)">No players match.</td></tr>`;
 }
 
 function renderField(){
@@ -867,7 +948,7 @@ $("idea-tabs").addEventListener("click",e=>{const b=e.target.closest("button[dat
 $("lg-shop").addEventListener("change",e=>{SHOP=e.target.value;IDEA_TEAM="all";renderLeague();});
 $("lg-team").addEventListener("change",e=>{if(!LG)return;IDEA_TEAM="all";SHOP="";LG.myTeam=e.target.value||null;try{localStorage.setItem("gtd-league",JSON.stringify({platform:LG.platform,id:LG.id,myTeam:LG.myTeam}));}catch(err){}renderLeague();});
 $("ideas").addEventListener("click",e=>{const b=e.target.closest("[data-idea]");if(!b)return;const x=$("ideas")._ideas[+b.dataset.idea];if(!x)return;
-  S.give=[...x.G];S.get=[...x.R];S.example=false;render();document.querySelector(".benches").scrollIntoView({behavior:"smooth",block:"start"});});
+  S.give=[...x.G];S.get=[...x.R];S.example=false;render();if(document.body.classList.contains("m")){setTab("trade");toast("Trade loaded into the calculator");}else document.querySelector(".benches").scrollIntoView({behavior:"smooth",block:"start"});});
 // Invite links: ?league=espn-123 or ?league=sleeper-123 loads that league for whoever opens it (no logins in the link).
 (function invite(){const m=String(QS.get("league")||"").match(/^(espn|sleeper)-(\d{1,20})$/);if(!m)return;
   try{const s=JSON.parse(localStorage.getItem("gtd-league")||"null");const same=s&&s.platform===m[1]&&s.id===m[2];
@@ -893,6 +974,44 @@ document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible" && Date.now() - LOADED_AT > 60 * 60 * 1000) location.reload();
 });
 window.addEventListener("pageshow", e => { if (e.persisted) location.reload(); });
+
+// ===== Phone app shell: bottom tabs, sticky verdict, player sheet, toasts (screens 720px or narrower) =====
+const MQ=matchMedia("(max-width:720px)");
+const HOME={ctls:document.querySelector("header .ctls"),prem:document.querySelector(".verdict .prem")};
+const PREM_HINT=HOME.prem.nextElementSibling; // the "Two quarters aren't a dollar" explanation
+const SPOT={ctls:document.createComment("ctls"),prem:document.createComment("prem")};
+HOME.ctls.before(SPOT.ctls);HOME.prem.before(SPOT.prem);
+function applyLayout(){const m=MQ.matches;document.body.classList.toggle("m",m);
+  if(m){$("more-ctls").append(HOME.ctls);$("more-prem").append(HOME.prem,PREM_HINT);}
+  else{SPOT.ctls.after(HOME.ctls);SPOT.prem.after(HOME.prem);HOME.prem.after(PREM_HINT);}}
+function setTab(tab,noScroll){document.body.dataset.tab=tab;document.querySelectorAll(".tabbar [data-go]").forEach(b=>b.setAttribute("aria-current",b.dataset.go===tab?"page":"false"));
+  try{sessionStorage.setItem("gtd-tab",tab);}catch(e){}if(!noScroll)window.scrollTo({top:0});if(tab==="ideas")scheduleLeague();}
+document.querySelector(".tabbar").addEventListener("click",e=>{const b=e.target.closest("[data-go]");if(b)setTab(b.dataset.go);});
+let TT=0;function toast(msg){const t=$("toast");t.textContent=msg;t.hidden=false;clearTimeout(TT);TT=setTimeout(()=>{t.hidden=true;},2200);}
+function phoneAdded(side,i){if(!document.body.classList.contains("m"))return;toast(`Added ${P[i].n} to You ${side}`);if(document.body.dataset.tab!=="trade")setTab("trade");}
+// Sticky verdict bar: tap to jump to the full verdict; hide it while the verdict itself is on screen.
+$("mini-verdict").addEventListener("click",()=>document.querySelector(".verdict").scrollIntoView({behavior:"smooth",block:"start"}));
+if("IntersectionObserver" in window)new IntersectionObserver(es=>{document.body.classList.toggle("mv-hide",es[0].isIntersecting);},{threshold:.35}).observe(document.querySelector(".verdict"));
+// "?" buttons show the explanations that are hidden on phones.
+document.addEventListener("click",e=>{const h=e.target.closest("[data-help]");if(h)$(h.dataset.help).classList.toggle("show");});
+// Player sheet: tap a row on the Players tab.
+let PS_ID=null;
+function openPlayer(id){const p=P[id];if(!p)return;PS_ID=id;$("ps-badge").innerHTML=ovrBadge(p);$("ps-name").textContent=p.n;
+  $("ps-meta").textContent=`${p.pos} · ${p.tm}${p.age?" · "+p.age+" yrs":""} · ${tierOf(ovrOf(p))[1]}`;
+  $("ps-trend").innerHTML=trend(p.tr);$("ps-sos").innerHTML=sosChip(p);
+  const chip=$("ps-sos").querySelector(".sos");$("ps-sos-text").textContent=chip&&chip.title!=="No schedule data"?chip.title:"";
+  const t=inTrade(id);$("ps-give").disabled=t;$("ps-get").disabled=t;$("ps-give").textContent=t?"Already in the trade":"Add to You give";$("ps-get").textContent=t?"Already in the trade":"Add to You get";
+  const d=$("player-sheet");if(!d.open){try{d.showModal();}catch(e){d.setAttribute("open","");}}}
+function closePlayer(){const d=$("player-sheet");if(d.open)d.close();}
+$("tb").addEventListener("click",e=>{if(!document.body.classList.contains("m")||e.target.closest("button"))return;const tr=e.target.closest("tr[data-pid]");if(tr)openPlayer(+tr.dataset.pid);});
+$("ps-close").addEventListener("click",closePlayer);
+$("player-sheet").addEventListener("click",e=>{if(e.target===$("player-sheet"))closePlayer();});
+$("ps-give").addEventListener("click",()=>{closePlayer();add("give",PS_ID);});
+$("ps-get").addEventListener("click",()=>{closePlayer();add("get",PS_ID);});
+applyLayout();MQ.addEventListener("change",applyLayout);
+let startTab="trade";try{const s=sessionStorage.getItem("gtd-tab");if(["trade","ideas","players","more"].includes(s))startTab=s;}catch(e){}
+if(location.hash==="#espn-connect")startTab="ideas";
+setTab(startTab,true);
 </script>
 
 </body>
