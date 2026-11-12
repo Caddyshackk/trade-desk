@@ -7,7 +7,8 @@ import { readFile, writeFile } from "node:fs/promises";
 
 const OUT = new URL("../values.json", import.meta.url);
 const getJSON = async (url, extra) => {
-  const r = await fetch(url, { headers: { "user-agent": "gridiron-trade-desk", ...(extra || {}) } });
+  // 30-second limit per request so one slow server can never hang the whole job.
+  const r = await fetch(url, { headers: { "user-agent": "gridiron-trade-desk", ...(extra || {}) }, signal: AbortSignal.timeout(30000) });
   if (!r.ok) throw new Error(`${r.status} ${url}`);
   return r.json();
 };
@@ -117,3 +118,5 @@ catch (e) { console.warn("Matchups kept from last run:", e.message); }
 const out = { sleeper, matchups, matchupsUpdated, updated: ok ? new Date().toISOString() : prev.updated || new Date().toISOString(), source: "FantasyCalc (QB/RB/WR/TE), Sleeper projections (K/DEF)", players: [...off, ...kd] };
 await writeFile(OUT, JSON.stringify(out));
 console.log(`Wrote ${out.players.length} players (${off.length} offense, ${kd.length} K/DEF).`);
+// Exit right away (nothing left to wait on).
+process.exit(0);
