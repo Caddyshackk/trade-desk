@@ -187,6 +187,20 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-be
 .ovr.t-waiver{background:linear-gradient(160deg,#5B6270,#3B414C);color:#C9CED6}
 .chip .ovr{height:24px;min-width:28px;font-size:15px;padding-bottom:4px}
 .card .ovr{height:34px;min-width:38px;font-size:21px}
+/* Badge pop: depth shadow (on the wrapper so the shield shape doesn't clip it), bevel, gloss, and a shine sweep on gold */
+.ovr-w{display:inline-flex;flex:none;vertical-align:middle;filter:drop-shadow(0 2px 2px rgba(5,12,25,.28)) drop-shadow(0 1px 0 rgba(5,12,25,.18));transition:transform .15s ease,filter .15s ease}
+.ovr-w.t-elite{filter:drop-shadow(0 2px 3px rgba(5,12,25,.3)) drop-shadow(0 0 5px rgba(242,183,5,.45))}
+.ovr-w.t-legend{animation:ovr-glow 2.6s ease-in-out infinite}
+.ovr-w:hover{transform:translateY(-1px) scale(1.07)}
+.ovr{position:relative;overflow:hidden;isolation:isolate;box-shadow:inset 0 2px 0 rgba(255,255,255,.55),inset 0 -2px 0 rgba(0,0,0,.18),inset 2px 0 0 rgba(255,255,255,.18),inset -2px 0 0 rgba(0,0,0,.12)}
+.ovr::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(180deg,rgba(255,255,255,.42) 0%,rgba(255,255,255,.1) 46%,rgba(255,255,255,0) 47%,rgba(0,0,0,.1) 100%)}
+.ovr.t-elite,.ovr.t-star{text-shadow:0 1px 0 rgba(255,255,255,.55)}
+.ovr.t-starter,.ovr.t-flex,.ovr.t-bench,.ovr.t-waiver{text-shadow:0 1px 1px rgba(0,0,0,.45)}
+.ovr.t-elite::after,.ovr.t-star::after{content:"";position:absolute;top:-30%;bottom:-30%;left:-70%;width:45%;z-index:-1;pointer-events:none;background:linear-gradient(100deg,transparent,rgba(255,255,255,.85),transparent);transform:skewX(-18deg);animation:ovr-shine 3.6s ease-in-out infinite}
+.ovr.t-star::after{animation-duration:5.2s;opacity:.7}
+@keyframes ovr-shine{0%{left:-70%}22%{left:135%}100%{left:135%}}
+@keyframes ovr-glow{0%,100%{filter:drop-shadow(0 2px 3px rgba(5,12,25,.3)) drop-shadow(0 0 4px rgba(242,183,5,.4))}50%{filter:drop-shadow(0 2px 3px rgba(5,12,25,.3)) drop-shadow(0 0 10px rgba(242,183,5,.85))}}
+@media (prefers-reduced-motion:reduce){.ovr-w.t-legend,.ovr::after{animation:none!important}.ovr::after{display:none}.ovr-w{transition:none}}
 .board td:first-child,.board th:first-child{width:1%;padding-right:4px}
 .board td:nth-child(3),.board td:nth-child(4),.board th:nth-child(3),.board th:nth-child(4){width:1%;white-space:nowrap;padding-inline:14px}
 .sos{display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:999px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap;border:1px solid transparent}
@@ -553,9 +567,9 @@ let VMAX=1;function setVmax(){VMAX=Math.max(1,...P.map(val));}
 const ovrFromValue=v=>Math.round(50+49*Math.pow(Math.max(0,v)/VMAX,0.4));
 const ovrOf=p=>Math.max(40,Math.min(99,ovrFromValue(val(p))));
 const tierOf=o=>o>=90?["elite","Elite"]:o>=85?["star","Star"]:o>=78?["starter","Starter"]:o>=70?["flex","Flex"]:o>=60?["bench","Bench"]:["waiver","Waiver"];
-const ovrBadge=p=>{const o=ovrOf(p),[c,l]=tierOf(o);return `<span class="ovr t-${c}" title="${l} · ${o} OVR">${o}</span>`;};
+const ovrBadge=p=>{const o=ovrOf(p),[c,l]=tierOf(o);return `<span class="ovr-w t-${c}${o>=95?" t-legend":""}"><span class="ovr t-${c}" title="${l} · ${o} OVR">${o}</span></span>`;};
 // Package rating: the whole side of a trade rated on the same scale (with the stud premium). Over 99 shows as 99+.
-const pkgBadge=ids=>{if(!ids.length)return `<span class="hint">—</span>`;const o=Math.max(40,ovrFromValue(adj(ids)));const[c,l]=tierOf(Math.min(o,99));return `<span class="ovr t-${c}" title="${l} package">${o>99?"99+":o}</span>`;};
+const pkgBadge=ids=>{if(!ids.length)return `<span class="hint">—</span>`;const o=Math.max(40,ovrFromValue(adj(ids)));const[c,l]=tierOf(Math.min(o,99));return `<span class="ovr-w t-${c}${o>=95?" t-legend":""}"><span class="ovr t-${c}" title="${l} package">${o>99?"99+":o}</span></span>`;};
 const pw=()=>1+S.prem/100;
 function adj(ids){if(!ids.length)return 0;const k=pw();return Math.pow(ids.reduce((a,i)=>a+Math.pow(val(P[i]),k),0),1/k);}
 function raw(ids){return ids.reduce((a,i)=>a+val(P[i]),0);}
