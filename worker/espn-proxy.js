@@ -6,6 +6,8 @@
 // Optional fallback for your own leagues: ESPN_S2 and SWID as Worker secrets.
 
 const ALLOWED_ORIGINS = [
+  "https://trade-desk.win",
+  "https://www.trade-desk.win",
   "https://caddyshackk.github.io",
   "http://localhost:5500",   // VS Code Live Server, for local testing
   "http://127.0.0.1:5500",
