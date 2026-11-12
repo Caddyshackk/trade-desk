@@ -1,7 +1,7 @@
 // Refreshes values.json for Gridiron Trade Desk. Runs daily from GitHub Actions (Node 20+, no dependencies).
 // QB/RB/WR/TE: FantasyCalc redraft market values (10/12/14-team). K/DEF: ranked by Sleeper rest-of-season projections,
 // scaled 0.75x for 10-team and 1.25x for 14-team leagues.
-// Strength of schedule: ESPN public fantasy data (points allowed by position + remaining NFL schedule).
+// Matchups left: ESPN public fantasy data (ESPN matchup ratings by position + remaining NFL schedule).
 // If a source fails, the previous values for that group are kept so the site never breaks.
 import { readFile, writeFile } from "node:fs/promises";
 
@@ -78,59 +78,30 @@ async function kdef() {
   return [...def, ...k];
 }
 
-// Strength of schedule from ESPN's public fantasy data (no login needed).
-// For each defense: average PPR points allowed per game to QB/RB/WR/TE so far this season.
-// For each offense: average of its remaining opponents' "points allowed" -> ranked 1 (easiest) to 32 (hardest),
-// for the rest of the season (through week 17) and for fantasy playoffs (weeks 15-17).
-async function buildSOS(season, getJSON) {
+// Matchups left: ESPN's own positional matchup ratings (the OPRK numbers in the ESPN app) + the NFL schedule.
+// ranks[pos][team] = that defense's rank vs the position (1 = toughest, 32 = easiest). sched[team] = [[week, opp, kickoff ms], ...].
+async function buildMatchups(season, getJSON) {
   const BASE = `https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/${season}`;
-  const POS = { 1: "QB", 2: "RB", 3: "WR", 4: "TE" };
+  const POS = { 1: "QB", 2: "RB", 3: "WR", 4: "TE", 5: "K", 16: "DEF" };
   const FIX = { WSH: "WAS" }; // ESPN abbreviation -> ours
-  const sched = await getJSON(`${BASE}?view=proTeamSchedules_wl`);
-  const teams = ((sched.settings && sched.settings.proTeams) || []).filter(t => t.id > 0);
+  const sched0 = await getJSON(`${BASE}?view=proTeamSchedules_wl`);
+  const teams = ((sched0.settings && sched0.settings.proTeams) || []).filter(t => t.id > 0);
   if (teams.length < 30) throw new Error(`schedule has only ${teams.length} teams`);
-  const abbr = {}; const gameOpp = {}; const upcoming = {}; const now = Date.now();
-  for (const t of teams) {
-    abbr[t.id] = FIX[String(t.abbrev).toUpperCase()] || String(t.abbrev).toUpperCase();
-    upcoming[t.id] = [];
-    for (const [wk, games] of Object.entries(t.proGamesByScoringPeriod || {})) {
-      for (const g of games) {
-        const opp = g.homeProTeamId === t.id ? g.awayProTeamId : g.homeProTeamId;
-        gameOpp[`${g.id}:${t.id}`] = opp;
-        if (+wk <= 17 && (g.date || 0) > now - 6 * 3600e3) upcoming[t.id].push({ wk: +wk, opp });
-      }
-    }
-  }
-  const filter = { players: { limit: 1500, sortPercOwned: { sortPriority: 1, sortAsc: false }, filterSlotIds: { value: [0, 2, 4, 6] },
-    filterStatsForSplitTypeIds: { value: [1] }, filterStatsForSourceIds: { value: [0] } } };
-  const kona = await getJSON(`${BASE}/segments/0/leaguedefaults/3?view=kona_player_info`, { "X-Fantasy-Filter": JSON.stringify(filter) });
-  const allowed = {}; const played = {};
-  for (const e of kona.players || []) {
-    const pl = e.player || {}; const pos = POS[pl.defaultPositionId]; if (!pos) continue;
-    for (const s of pl.stats || []) {
-      if (s.seasonId !== season || s.statSourceId !== 0 || s.statSplitTypeId !== 1 || !s.scoringPeriodId) continue;
-      const opp = gameOpp[`${s.externalId}:${s.proTeamId}`]; if (!opp) continue;
-      ((allowed[opp] ||= {})[pos] ||= 0); allowed[opp][pos] += s.appliedTotal || 0;
-      (played[opp] ||= new Set()).add(s.externalId);
-    }
-  }
-  const avg = {}; // defense id -> pos -> points allowed per game
-  for (const t of teams) { const n = (played[t.id] && played[t.id].size) || 0; avg[t.id] = {};
-    for (const p of Object.values(POS)) avg[t.id][p] = n ? ((allowed[t.id] || {})[p] || 0) / n : null; }
-  const rank = (vals) => { // higher = easier -> rank 1
-    const ids = Object.keys(vals).filter(k => vals[k] != null).sort((a, b) => vals[b] - vals[a]);
-    const r = {}; ids.forEach((k, i) => (r[k] = i + 1)); return r; };
-  const out = {};
-  for (const p of Object.values(POS)) {
-    const ros = {}, po = {};
-    for (const t of teams) {
-      const f = (list) => { const v = list.map(g => avg[g.opp] && avg[g.opp][p]).filter(x => x != null); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; };
-      ros[t.id] = f(upcoming[t.id]); po[t.id] = f(upcoming[t.id].filter(g => g.wk >= 15));
-    }
-    const rr = rank(ros), rp = rank(po);
-    for (const t of teams) ((out[abbr[t.id]] ||= {})[p] = [rr[t.id] || null, rp[t.id] || null, upcoming[t.id].length]);
-  }
-  return out; // { "SEA": { "QB": [rosRank, playoffRank, gamesLeft], ... }, ... }
+  const ab = {}; for (const t of teams) { const a = String(t.abbrev).toUpperCase(); ab[t.id] = FIX[a] || a; }
+  const rat = await getJSON(`${BASE}/segments/0/leaguedefaults/3?view=mPositionalRatingsStats`);
+  const pr = (rat.positionAgainstOpponent || {}).positionalRatings || {};
+  const ranks = {};
+  for (const [pid, pos] of Object.entries(POS)) { ranks[pos] = {};
+    for (const [tid, v] of Object.entries((pr[pid] || {}).ratingsByOpponent || {})) if (ab[tid] && v.rank) ranks[pos][ab[tid]] = v.rank; }
+  if (Object.keys(ranks.RB).length < 30) throw new Error("ESPN matchup ratings missing");
+  const sched = {}; const cutoff = Date.now() - 14 * 86400e3;
+  for (const t of teams) { sched[ab[t.id]] = [];
+    for (const [wk, games] of Object.entries(t.proGamesByScoringPeriod || {})) for (const g of games) {
+      if (+wk > 17 || (g.date || 0) < cutoff) continue;
+      const opp = g.homeProTeamId === t.id ? g.awayProTeamId : g.homeProTeamId;
+      if (ab[opp]) sched[ab[t.id]].push([+wk, ab[opp], g.date]); }
+    sched[ab[t.id]].sort((a, b) => a[0] - b[0]); }
+  return { ranks, sched };
 }
 
 let off, kd, ok = true;
@@ -140,9 +111,9 @@ if (!off.length) throw new Error("No offensive values available; leaving values.
 
 off.sort((a, b) => b[4][4] - a[4][4]);
 const sleeper = { ...(prev.sleeper || {}), ...SLEEPER };
-let sos = prev.sos || null, sosUpdated = prev.sosUpdated || null;
-try { const season = new Date().getMonth() < 2 ? new Date().getFullYear() - 1 : new Date().getFullYear(); sos = await buildSOS(season, getJSON); sosUpdated = new Date().toISOString(); }
-catch (e) { console.warn("Strength of schedule kept from last run:", e.message); }
-const out = { sleeper, sos, sosUpdated, updated: ok ? new Date().toISOString() : prev.updated || new Date().toISOString(), source: "FantasyCalc (QB/RB/WR/TE), Sleeper projections (K/DEF)", players: [...off, ...kd] };
+let matchups = prev.matchups || null, matchupsUpdated = prev.matchupsUpdated || null;
+try { const season = new Date().getMonth() < 2 ? new Date().getFullYear() - 1 : new Date().getFullYear(); matchups = await buildMatchups(season, getJSON); matchupsUpdated = new Date().toISOString(); }
+catch (e) { console.warn("Matchups kept from last run:", e.message); }
+const out = { sleeper, matchups, matchupsUpdated, updated: ok ? new Date().toISOString() : prev.updated || new Date().toISOString(), source: "FantasyCalc (QB/RB/WR/TE), Sleeper projections (K/DEF)", players: [...off, ...kd] };
 await writeFile(OUT, JSON.stringify(out));
 console.log(`Wrote ${out.players.length} players (${off.length} offense, ${kd.length} K/DEF).`);
