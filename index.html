@@ -169,6 +169,18 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-be
 .balance{border-top:1px solid var(--line);padding-top:12px;display:grid;gap:8px}
 .balance p{margin:0}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
+/* Madden-style OVR badges: the rating is a display layer on top of the market value */
+.ovr{display:inline-grid;place-items:center;flex:none;min-width:34px;height:30px;padding:0 4px;font-family:var(--f-display);font-weight:900;font-size:19px;line-height:1;letter-spacing:.01em;color:#fff;clip-path:polygon(0 0,100% 0,100% 72%,50% 100%,0 72%);padding-bottom:5px;vertical-align:middle;font-variant-numeric:tabular-nums;text-shadow:0 1px 0 rgba(0,0,0,.25)}
+.ovr.t-elite{background:linear-gradient(160deg,#F7E08A,#D4A62A 55%,#9C7414);color:#2A1E00;text-shadow:none}
+.ovr.t-star{background:linear-gradient(160deg,#F1F3F6,#B9C1CB 55%,#8792A0);color:#1B2230;text-shadow:none}
+.ovr.t-starter{background:linear-gradient(160deg,#E7B07A,#B87333 55%,#7E4A1E)}
+.ovr.t-flex{background:linear-gradient(160deg,#5C8FD6,#2F5FA8)}
+.ovr.t-bench{background:linear-gradient(160deg,#7D8796,#566070)}
+.ovr.t-waiver{background:linear-gradient(160deg,#5B6270,#3B414C);color:#C9CED6}
+.chip .ovr{height:24px;min-width:28px;font-size:15px;padding-bottom:4px}
+.card .ovr{height:34px;min-width:38px;font-size:21px}
+.ovr-legend{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;font-size:12px;color:var(--muted)}
+.ovr-legend .ovr{height:22px;min-width:28px;font-size:13px;padding-bottom:3px}
 .chip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--panel2);border-radius:999px;padding:4px 10px 4px 4px;font-size:13px}
 .chip:hover{border-color:var(--flag)}
 .chip .pos{height:20px;min-width:28px;font-size:10px;border-radius:999px}
@@ -361,9 +373,10 @@ footer a{color:inherit}
       </div>
       <input id="bq" type="search" placeholder="Filter players" aria-label="Filter value board">
     </div>
+    <div class="ovr-legend"><span><span class="ovr t-elite">90</span> Elite</span><span><span class="ovr t-star">85</span> Star</span><span><span class="ovr t-starter">78</span> Starter</span><span><span class="ovr t-flex">70</span> Flex</span><span><span class="ovr t-bench">60</span> Bench</span><span><span class="ovr t-waiver">50</span> Waiver</span><span>· 99 = most valuable player in this format</span></div>
     <div class="tbl-wrap">
       <table>
-        <thead><tr><th class="r">#</th><th>Player</th><th class="hide-sm">Team</th><th class="r hide-sm">Age</th><th class="r">Value</th><th class="r hide-sm">30-day</th><th class="r">Add</th></tr></thead>
+        <thead><tr><th class="r">#</th><th>Player</th><th class="hide-sm">Team</th><th class="r hide-sm">Age</th><th class="r hide-sm">Value</th><th class="r hide-sm">30-day</th><th class="r">Add</th></tr></thead>
         <tbody id="tb"></tbody>
       </table>
     </div>
@@ -431,6 +444,12 @@ let posF="ALL";
 const $=id=>document.getElementById(id);
 const fmtN=n=>Math.round(n).toLocaleString("en-US");
 const val=p=>p.v[SIZES.indexOf(S.size)*4+FMTS.indexOf(S.fmt)]||0;
+// OVR rating (Madden style): 99 = most valuable player in the current scoring/league size.
+// Power curve (0.4) so ratings spread like real Madden: ~12 elite, ~100 startable, deep bench in the 50s. Market value still drives all the math.
+let VMAX=1;function setVmax(){VMAX=Math.max(1,...P.map(val));}
+const ovrOf=p=>Math.max(40,Math.min(99,Math.round(50+49*Math.pow(Math.max(0,val(p))/VMAX,0.4))));
+const tierOf=o=>o>=90?["elite","Elite"]:o>=85?["star","Star"]:o>=78?["starter","Starter"]:o>=70?["flex","Flex"]:o>=60?["bench","Bench"]:["waiver","Waiver"];
+const ovrBadge=p=>{const o=ovrOf(p),[c,l]=tierOf(o);return `<span class="ovr t-${c}" title="${l} · ${o} OVR · value ${fmtN(val(p))}">${o}</span>`;};
 const pw=()=>1+S.prem/100;
 function adj(ids){if(!ids.length)return 0;const k=pw();return Math.pow(ids.reduce((a,i)=>a+Math.pow(val(P[i]),k),0),1/k);}
 function raw(ids){return ids.reduce((a,i)=>a+val(P[i]),0);}
@@ -444,7 +463,7 @@ function remove(side,i){S[side]=S[side].filter(x=>x!==i);S.example=false;render(
 function renderRoster(side){
   const ul=$("r-"+side);const ids=[...S[side]].sort((a,b)=>val(P[b])-val(P[a]));
   if(!ids.length){ul.innerHTML=`<li class="slot">No players yet. Search above or use the value board.</li>`;return;}
-  ul.innerHTML=ids.map(i=>{const p=P[i];return `<li class="card"><span class="pos ${p.pos}">${p.pos}</span><div class="who"><b>${esc(p.n)}</b><small>${p.tm} · ${p.age?p.age+" yrs · ":""}${trend(p.tr)}</small></div><span class="val">${fmtN(val(p))}</span><button class="x" data-rm="${side}:${i}" aria-label="Remove ${esc(p.n)}">×</button></li>`}).join("");
+  ul.innerHTML=ids.map(i=>{const p=P[i];return `<li class="card">${ovrBadge(p)}<div class="who"><b>${esc(p.n)}</b><small><span class="pos ${p.pos}" style="height:18px;min-width:28px;font-size:10px">${p.pos}</span> ${p.tm} · ${p.age?p.age+" yrs · ":""}${trend(p.tr)}</small></div><span class="val">${fmtN(val(p))}</span><button class="x" data-rm="${side}:${i}" aria-label="Remove ${esc(p.n)}">×</button></li>`}).join("");
 }
 
 function renderVerdict(){
@@ -474,7 +493,7 @@ function renderVerdict(){
   $("bal-text").innerHTML=shortSide==="give"
     ?`To make it fair for them, <b>add about <span class="num">${fmtN(need)}</span></b> in value to your side. Players near that value:`
     :`To even it out, <b>ask for about <span class="num">${fmtN(need)}</span></b> more. Players near that value:`;
-  $("bal-chips").innerHTML=picks.map(p=>`<button class="chip" data-add="${shortSide}:${p.id}"><span class="pos ${p.pos}">${p.pos}</span>${esc(p.n)} <span class="num">${fmtN(val(p))}</span></button>`).join("");
+  $("bal-chips").innerHTML=picks.map(p=>`<button class="chip" data-add="${shortSide}:${p.id}">${ovrBadge(p)}<span class="pos ${p.pos}">${p.pos}</span>${esc(p.n)}</button>`).join("");
   bal.hidden=false;
 }
 
@@ -484,7 +503,7 @@ function renderBoard(){
   const posRank={};
   const rows=list.map((p,ix)=>{posRank[p.pos]=(posRank[p.pos]||0)+1;return{p,rank:ix+1,pr:posRank[p.pos]};})
     .filter(o=>(posF==="ALL"||o.p.pos===posF)&&(!q||o.p.n.toLowerCase().includes(q)));
-  $("tb").innerHTML=rows.map(({p,rank,pr})=>{const t=inTrade(p.id);return `<tr><td class="r num">${rank}</td><td><span class="pos ${p.pos}">${p.pos}${pr}</span> <b>${esc(p.n)}</b></td><td class="hide-sm">${p.tm}</td><td class="r num hide-sm">${p.age||"–"}</td><td class="r num"><span class="bar hide-sm" style="width:${Math.max(2,Math.round(60*val(p)/top))}px"></span>${fmtN(val(p))}</td><td class="r hide-sm">${trend(p.tr)}</td><td class="r"><button class="add" data-add="give:${p.id}" ${t?"disabled":""}>Give</button> <button class="add" data-add="get:${p.id}" ${t?"disabled":""}>Get</button></td></tr>`}).join("")||`<tr><td colspan="7" style="color:var(--muted)">No players match.</td></tr>`;
+  $("tb").innerHTML=rows.map(({p,rank,pr})=>{const t=inTrade(p.id);return `<tr><td class="r num">${rank}</td><td>${ovrBadge(p)} <span class="pos ${p.pos}">${p.pos}${pr}</span> <b>${esc(p.n)}</b></td><td class="hide-sm">${p.tm}</td><td class="r num hide-sm">${p.age||"–"}</td><td class="r num hide-sm"><span class="bar" style="width:${Math.max(2,Math.round(60*val(p)/top))}px"></span>${fmtN(val(p))}</td><td class="r hide-sm">${trend(p.tr)}</td><td class="r"><button class="add" data-add="give:${p.id}" ${t?"disabled":""}>Give</button> <button class="add" data-add="get:${p.id}" ${t?"disabled":""}>Get</button></td></tr>`}).join("")||`<tr><td colspan="7" style="color:var(--muted)">No players match.</td></tr>`;
 }
 
 function renderField(){
@@ -493,6 +512,7 @@ function renderField(){
 }
 
 function render(){
+  setVmax();
   document.querySelectorAll("#size button").forEach(b=>b.setAttribute("aria-pressed",+b.dataset.s===S.size));$("size-l2").textContent=S.size;
   document.querySelectorAll("#fmt button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.f===S.fmt));
   document.querySelectorAll("#posf button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.p===posF));
@@ -510,7 +530,7 @@ function setupSearch(side){
   function show(){
     const q=norm(inp.value.trim());if(!q){dd.hidden=true;return;}
     res=P.filter(p=>!inTrade(p.id)&&(norm(p.n).includes(q)||p.tm.toLowerCase()===q)).sort((a,b)=>val(b)-val(a)).slice(0,8);hl=0;
-    dd.innerHTML=res.length?res.map((p,i)=>`<button type="button" data-i="${p.id}" class="${i===0?"hl":""}"><span class="pos ${p.pos}">${p.pos}</span><span class="nm">${esc(p.n)}</span><small style="color:var(--muted)">${p.tm}</small><span class="num">${fmtN(val(p))}</span></button>`).join(""):`<div class="empty">No match in the top ${P.length} players.</div>`;
+    dd.innerHTML=res.length?res.map((p,i)=>`<button type="button" data-i="${p.id}" class="${i===0?"hl":""}"><span class="pos ${p.pos}">${p.pos}</span><span class="nm">${esc(p.n)}</span><small style="color:var(--muted)">${p.tm}</small>${ovrBadge(p)}</button>`).join(""):`<div class="empty">No match in the top ${P.length} players.</div>`;
     dd.hidden=false;
   }
   function pick(i){add(side,i);inp.value="";dd.hidden=true;inp.focus();}
@@ -660,7 +680,7 @@ function renderLeague(){
   const me=LG.teams.find(tm=>tm.id===LG.myTeam),shopSel=$("lg-shop");
   const myPlayers=me?teamIds(me).filter(i=>P[i].pos!=="K"&&P[i].pos!=="DEF").sort((a,b)=>val(P[b])-val(P[a])):[];
   if(SHOP&&!myPlayers.some(i=>P[i].n===SHOP))SHOP="";
-  const opts=`<option value="">Any player</option>`+myPlayers.map(i=>`<option value="${esc(P[i].n)}">${esc(P[i].n)} (${P[i].pos}, ${fmtN(val(P[i]))})</option>`).join("");
+  const opts=`<option value="">Any player</option>`+myPlayers.map(i=>`<option value="${esc(P[i].n)}">${esc(P[i].n)} (${P[i].pos} · ${ovrOf(P[i])} OVR)</option>`).join("");
   if(shopSel.dataset.opts!==opts){shopSel.innerHTML=opts;shopSel.dataset.opts=opts;}
   shopSel.value=SHOP;
   const res=tradeIdeas();
@@ -670,7 +690,7 @@ function renderLeague(){
     LG.teams.filter(tm=>tm.id!==LG.myTeam).map(tm=>{const n=res.byTeam[tm.id].length;return`<button type="button" data-team="${esc(tm.id)}" aria-pressed="${IDEA_TEAM===tm.id}"${n?"":" disabled"}>${esc(tm.name)} <span class="cnt">${n}</span></button>`;}).join("");
   const ideas=IDEA_TEAM==="all"?res.all:res.byTeam[IDEA_TEAM];
   if(!ideas.length){box.innerHTML=SHOP?`<p class="hint">No fair deals found for ${esc(SHOP)}${IDEA_TEAM!=="all"?" with this team":""}. Try a looser Fairness setting or a different team.</p>`:`<p class="hint">No fair trades found that improve your starting lineup. Your roster may already be well balanced, or try a different stud premium.</p>`;return;}
-  const chip=i=>`<span class="chip static"><span class="pos ${P[i].pos}">${P[i].pos}</span>${esc(P[i].n)} <span class="num">${fmtN(val(P[i]))}</span></span>`;
+  const chip=i=>`<span class="chip static">${ovrBadge(P[i])}<span class="pos ${P[i].pos}">${P[i].pos}</span>${esc(P[i].n)}</span>`;
   const mk=m=>Math.abs(m)<.01?"Dead even":m>0?`You gain ${Math.round(m*100)}% in value`:`You pay ${Math.round(-m*100)}% extra`;
   box.innerHTML=ideas.map((x,ix)=>`<article class="idea">
     <div class="idea-h"><b>${esc(x.team.name)}</b>${x.dTh>0?`<span class="tag">Win-win</span>`:""}</div>
