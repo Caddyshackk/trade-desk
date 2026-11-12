@@ -3,13 +3,27 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="description" content="Redraft fantasy football trade calculator">
+<meta name="description" content="Madden-style player ratings, a fair-trade calculator, Sleeper and ESPN league sync, and trade ideas for your fantasy football league.">
 <!-- Security: only allow this page to load from / talk to the sites it needs. Add a host here if you add a new data source. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://api.sleeper.app https://trade-desk-espn.caddyshackkidd.workers.dev; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <style>html.framed{display:none!important}</style>
 <script>/* Security: refuse to run inside another site's frame (clickjacking). */if(window.top!==window.self){document.documentElement.className+=" framed";try{window.top.location=window.self.location.href;}catch(e){}}</script>
-<title>Gridiron Trade Desk</title>
+<title>Trade Desk</title>
+<!-- Link previews (iMessage, Discord, Slack, Facebook, X): title, text and image shown when the link is shared -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="trade-desk.win">
+<meta property="og:title" content="Win every trade">
+<meta property="og:description" content="Madden-style player ratings, a fair-trade calculator, Sleeper and ESPN league sync, and trade ideas for your fantasy football league.">
+<meta property="og:url" content="https://trade-desk.win/">
+<meta property="og:image" content="https://trade-desk.win/icons/share-card.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Win every trade: a gold 99 OVR rating badge on trade-desk.win">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Win every trade">
+<meta name="twitter:description" content="Madden-style player ratings, a fair-trade calculator, Sleeper and ESPN league sync, and trade ideas for your fantasy football league.">
+<meta name="twitter:image" content="https://trade-desk.win/icons/share-card.png">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
@@ -337,7 +351,7 @@ footer a{color:inherit}
 <div class="wrap">
   <header>
     <div class="brand">
-      <h1>Gridiron Trade <span>Desk</span></h1>
+      <h1>Trade <span>Desk</span></h1>
       <p>Redraft · <span id="size-l2">12</span>-team · QB/RB/WR/TE/K/DEF · values as of <b id="asof">Sep 30, 2026</b></p>
     </div>
     <div class="ctls">
