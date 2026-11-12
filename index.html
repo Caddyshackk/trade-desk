@@ -118,7 +118,7 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-be
 .bench{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;display:grid;gap:10px;align-content:start;min-width:0}
 .bench-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
 .bench-h h2{font-family:var(--f-display);font-weight:700;font-size:26px;text-transform:uppercase;letter-spacing:.03em;margin:0}
-.bench-h .tot{font-size:13px;color:var(--muted)}
+.bench-h .tot{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px;text-transform:uppercase;letter-spacing:.08em;font-weight:600}
 .bench-h .tot b{font-family:var(--f-mono);color:var(--ink);font-size:17px}
 .search{position:relative}
 .search input{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:9px;background:var(--panel2);color:var(--ink);font:inherit}
@@ -129,7 +129,7 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-be
 .dd .nm{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}
 .dd .empty{padding:10px;color:var(--muted);font-size:13px}
 .roster{display:grid;gap:6px;list-style:none;margin:0;padding:0}
-.card{display:grid;grid-template-columns:auto 1fr auto auto;align-items:center;gap:10px;padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:var(--panel2)}
+.card{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:var(--panel2)}
 .card .who{min-width:0}
 .card .who b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .card .who small{color:var(--muted);font-size:12px}
@@ -179,6 +179,13 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-be
 .ovr.t-waiver{background:linear-gradient(160deg,#5B6270,#3B414C);color:#C9CED6}
 .chip .ovr{height:24px;min-width:28px;font-size:15px;padding-bottom:4px}
 .card .ovr{height:34px;min-width:38px;font-size:21px}
+.pl{display:flex;align-items:center;gap:10px;min-width:0}
+.pl .ovr{height:34px;min-width:38px;font-size:21px}
+.pl-who{display:grid;gap:2px;min-width:0}
+.pl-who b{white-space:normal;line-height:1.2}
+.pl-who small{color:var(--muted);font-size:12px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.pl-who .pos{height:18px;min-width:30px;font-size:10px}
+.stat .v .ovr{height:36px;min-width:44px;font-size:23px}
 .ovr-legend{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;font-size:12px;color:var(--muted)}
 .ovr-legend .ovr{height:22px;min-width:28px;font-size:13px;padding-bottom:3px}
 .chip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--panel2);border-radius:999px;padding:4px 10px 4px 4px;font-size:13px}
@@ -321,12 +328,12 @@ footer a{color:inherit}
   </dialog>
   <section class="benches">
     <div class="bench" data-side="give">
-      <div class="bench-h"><h2>You give</h2><div class="tot">Total <b id="tot-give">0</b></div></div>
+      <div class="bench-h"><h2>You give</h2><div class="tot">Package <span id="tot-give"></span></div></div>
       <div class="search"><input id="q-give" type="search" placeholder="Add a player you'd send…" autocomplete="off" aria-label="Search players to give"><div class="dd" id="dd-give" hidden></div></div>
       <ul class="roster" id="r-give"></ul>
     </div>
     <div class="bench" data-side="get">
-      <div class="bench-h"><h2>You get</h2><div class="tot">Total <b id="tot-get">0</b></div></div>
+      <div class="bench-h"><h2>You get</h2><div class="tot">Package <span id="tot-get"></span></div></div>
       <div class="search"><input id="q-get" type="search" placeholder="Add a player you'd receive…" autocomplete="off" aria-label="Search players to get"><div class="dd" id="dd-get" hidden></div></div>
       <ul class="roster" id="r-get"></ul>
     </div>
@@ -348,9 +355,8 @@ footer a{color:inherit}
       <div class="ez r"><span>YOU</span></div>
     </div>
     <div class="stats">
-      <div class="stat"><div class="k">You give (adj.)</div><div class="v" id="s-give">0</div></div>
-      <div class="stat"><div class="k">You get (adj.)</div><div class="v" id="s-get">0</div></div>
-      <div class="stat"><div class="k">Net for you</div><div class="v" id="s-net">0</div></div>
+      <div class="stat"><div class="k">You give</div><div class="v" id="s-give"></div></div>
+      <div class="stat"><div class="k">You get</div><div class="v" id="s-get"></div></div>
       <div class="stat"><div class="k">Value swing</div><div class="v" id="s-pct">0%</div></div>
     </div>
     <div class="prem">
@@ -376,7 +382,7 @@ footer a{color:inherit}
     <div class="ovr-legend"><span><span class="ovr t-elite">90</span> Elite</span><span><span class="ovr t-star">85</span> Star</span><span><span class="ovr t-starter">78</span> Starter</span><span><span class="ovr t-flex">70</span> Flex</span><span><span class="ovr t-bench">60</span> Bench</span><span><span class="ovr t-waiver">50</span> Waiver</span><span>· 99 = most valuable player in this format</span></div>
     <div class="tbl-wrap">
       <table>
-        <thead><tr><th class="r">#</th><th>Player</th><th class="hide-sm">Team</th><th class="r hide-sm">Age</th><th class="r hide-sm">Value</th><th class="r hide-sm">30-day</th><th class="r">Add</th></tr></thead>
+        <thead><tr><th class="r">#</th><th>Player</th><th class="hide-sm">30-day</th><th class="r">Add</th></tr></thead>
         <tbody id="tb"></tbody>
       </table>
     </div>
@@ -447,15 +453,20 @@ const val=p=>p.v[SIZES.indexOf(S.size)*4+FMTS.indexOf(S.fmt)]||0;
 // OVR rating (Madden style): 99 = most valuable player in the current scoring/league size.
 // Power curve (0.4) so ratings spread like real Madden: ~12 elite, ~100 startable, deep bench in the 50s. Market value still drives all the math.
 let VMAX=1;function setVmax(){VMAX=Math.max(1,...P.map(val));}
-const ovrOf=p=>Math.max(40,Math.min(99,Math.round(50+49*Math.pow(Math.max(0,val(p))/VMAX,0.4))));
+const ovrFromValue=v=>Math.round(50+49*Math.pow(Math.max(0,v)/VMAX,0.4));
+const ovrOf=p=>Math.max(40,Math.min(99,ovrFromValue(val(p))));
 const tierOf=o=>o>=90?["elite","Elite"]:o>=85?["star","Star"]:o>=78?["starter","Starter"]:o>=70?["flex","Flex"]:o>=60?["bench","Bench"]:["waiver","Waiver"];
-const ovrBadge=p=>{const o=ovrOf(p),[c,l]=tierOf(o);return `<span class="ovr t-${c}" title="${l} · ${o} OVR · value ${fmtN(val(p))}">${o}</span>`;};
+const ovrBadge=p=>{const o=ovrOf(p),[c,l]=tierOf(o);return `<span class="ovr t-${c}" title="${l} · ${o} OVR">${o}</span>`;};
+// Package rating: the whole side of a trade rated on the same scale (with the stud premium). Over 99 shows as 99+.
+const pkgBadge=ids=>{if(!ids.length)return `<span class="hint">—</span>`;const o=Math.max(40,ovrFromValue(adj(ids)));const[c,l]=tierOf(Math.min(o,99));return `<span class="ovr t-${c}" title="${l} package">${o>99?"99+":o}</span>`;};
 const pw=()=>1+S.prem/100;
 function adj(ids){if(!ids.length)return 0;const k=pw();return Math.pow(ids.reduce((a,i)=>a+Math.pow(val(P[i]),k),0),1/k);}
 function raw(ids){return ids.reduce((a,i)=>a+val(P[i]),0);}
 function save(){try{localStorage.setItem("gtd-state-v2",JSON.stringify({...S,give:S.give.map(i=>P[i].n),get:S.get.map(i=>P[i].n)}));}catch(e){}}
 function esc(s){return s.replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
-function trend(t){if(t==null)return `<span class="tr fl">—</span>`;const c=t>50?"up":t<-50?"dn":"fl";const a=t>50?"▲":t<-50?"▼":"■";return `<span class="tr ${c}">${a} ${fmtN(Math.abs(t))}</span>`;}
+// 30-day trend as a word (no value numbers shown): big moves get a double arrow.
+function trend(t){if(t==null)return `<span class="tr fl">—</span>`;const c=t>50?"up":t<-50?"dn":"fl";
+  const a=t>1500?"▲▲ Hot":t>50?"▲ Rising":t<-1500?"▼▼ Cold":t<-50?"▼ Falling":"■ Steady";return `<span class="tr ${c}">${a}</span>`;}
 function inTrade(i){return S.give.includes(i)||S.get.includes(i);}
 function add(side,i){if(inTrade(i))return;S[side].push(i);S.example=false;render();}
 function remove(side,i){S[side]=S[side].filter(x=>x!==i);S.example=false;render();}
@@ -463,14 +474,13 @@ function remove(side,i){S[side]=S[side].filter(x=>x!==i);S.example=false;render(
 function renderRoster(side){
   const ul=$("r-"+side);const ids=[...S[side]].sort((a,b)=>val(P[b])-val(P[a]));
   if(!ids.length){ul.innerHTML=`<li class="slot">No players yet. Search above or use the value board.</li>`;return;}
-  ul.innerHTML=ids.map(i=>{const p=P[i];return `<li class="card">${ovrBadge(p)}<div class="who"><b>${esc(p.n)}</b><small><span class="pos ${p.pos}" style="height:18px;min-width:28px;font-size:10px">${p.pos}</span> ${p.tm} · ${p.age?p.age+" yrs · ":""}${trend(p.tr)}</small></div><span class="val">${fmtN(val(p))}</span><button class="x" data-rm="${side}:${i}" aria-label="Remove ${esc(p.n)}">×</button></li>`}).join("");
+  ul.innerHTML=ids.map(i=>{const p=P[i];return `<li class="card">${ovrBadge(p)}<div class="who"><b>${esc(p.n)}</b><small><span class="pos ${p.pos}" style="height:18px;min-width:28px;font-size:10px">${p.pos}</span> ${p.tm} · ${p.age?p.age+" yrs · ":""}${trend(p.tr)}</small></div><button class="x" data-rm="${side}:${i}" aria-label="Remove ${esc(p.n)}">×</button></li>`}).join("");
 }
 
 function renderVerdict(){
   const G=adj(S.give),R=adj(S.get),net=R-G,big=Math.max(G,R),pct=big?net/big:0;
-  $("s-give").textContent=fmtN(G);$("s-get").textContent=fmtN(R);
-  $("s-net").textContent=(net>0?"+":"")+fmtN(net);$("s-net").style.color=Math.abs(pct)<.05?"":net>0?"var(--good)":"var(--bad)";
-  $("s-pct").textContent=(pct>0?"+":"")+Math.round(pct*100)+"%";
+  $("s-give").innerHTML=pkgBadge(S.give);$("s-get").innerHTML=pkgBadge(S.get);
+  $("s-pct").textContent=(pct>0?"+":"")+Math.round(pct*100)+"%";$("s-pct").style.color=Math.abs(pct)<.05?"":net>0?"var(--good)":"var(--bad)";
   let call,sub;
   if(!S.give.length||!S.get.length){call="Build the deal";sub="Add at least one player to each side.";}
   else{
@@ -491,8 +501,8 @@ function renderVerdict(){
   const need=Math.pow(Math.max(0,Math.pow(W,k)-Sl),1/k);
   const picks=P.filter(p=>!inTrade(p.id)).sort((a,b)=>Math.abs(val(a)-need)-Math.abs(val(b)-need)).slice(0,5).sort((a,b)=>val(b)-val(a));
   $("bal-text").innerHTML=shortSide==="give"
-    ?`To make it fair for them, <b>add about <span class="num">${fmtN(need)}</span></b> in value to your side. Players near that value:`
-    :`To even it out, <b>ask for about <span class="num">${fmtN(need)}</span></b> more. Players near that value:`;
+    ?`To make it fair for them, <b>add about a ${ovrFromValue(need)} OVR player</b> to your side, like:`
+    :`To even it out, <b>ask for about a ${ovrFromValue(need)} OVR player</b> more, like:`;
   $("bal-chips").innerHTML=picks.map(p=>`<button class="chip" data-add="${shortSide}:${p.id}">${ovrBadge(p)}<span class="pos ${p.pos}">${p.pos}</span>${esc(p.n)}</button>`).join("");
   bal.hidden=false;
 }
@@ -503,7 +513,7 @@ function renderBoard(){
   const posRank={};
   const rows=list.map((p,ix)=>{posRank[p.pos]=(posRank[p.pos]||0)+1;return{p,rank:ix+1,pr:posRank[p.pos]};})
     .filter(o=>(posF==="ALL"||o.p.pos===posF)&&(!q||o.p.n.toLowerCase().includes(q)));
-  $("tb").innerHTML=rows.map(({p,rank,pr})=>{const t=inTrade(p.id);return `<tr><td class="r num">${rank}</td><td>${ovrBadge(p)} <span class="pos ${p.pos}">${p.pos}${pr}</span> <b>${esc(p.n)}</b></td><td class="hide-sm">${p.tm}</td><td class="r num hide-sm">${p.age||"–"}</td><td class="r num hide-sm"><span class="bar" style="width:${Math.max(2,Math.round(60*val(p)/top))}px"></span>${fmtN(val(p))}</td><td class="r hide-sm">${trend(p.tr)}</td><td class="r"><button class="add" data-add="give:${p.id}" ${t?"disabled":""}>Give</button> <button class="add" data-add="get:${p.id}" ${t?"disabled":""}>Get</button></td></tr>`}).join("")||`<tr><td colspan="7" style="color:var(--muted)">No players match.</td></tr>`;
+  $("tb").innerHTML=rows.map(({p,rank,pr})=>{const t=inTrade(p.id);return `<tr><td class="r num">${rank}</td><td><div class="pl">${ovrBadge(p)}<div class="pl-who"><b>${esc(p.n)}</b><small><span class="pos ${p.pos}">${p.pos}${pr}</span> ${p.tm}${p.age?" · "+p.age+" yrs":""}</small></div></div></td><td class="hide-sm">${trend(p.tr)}</td><td class="r"><button class="add" data-add="give:${p.id}" ${t?"disabled":""}>Give</button> <button class="add" data-add="get:${p.id}" ${t?"disabled":""}>Get</button></td></tr>`}).join("")||`<tr><td colspan="4" style="color:var(--muted)">No players match.</td></tr>`;
 }
 
 function renderField(){
@@ -519,7 +529,7 @@ function render(){
   $("prem").value=S.prem;$("prem-v").textContent=S.prem+"%";
   $("ex-tag").hidden=!S.example;
   renderRoster("give");renderRoster("get");
-  $("tot-give").textContent=fmtN(raw(S.give));$("tot-get").textContent=fmtN(raw(S.get));
+  $("tot-give").innerHTML=pkgBadge(S.give);$("tot-get").innerHTML=pkgBadge(S.get);
   renderVerdict();renderBoard();save();scheduleLeague();
 }
 
@@ -655,7 +665,7 @@ function tradeIdeas(){
       const nm=mine.filter(i=>!G.includes(i)).concat(R),nt=theirs.filter(i=>!R.includes(i)).concat(G);
       const dMe=lineupValue(nm,LG.slots)-myBase,dTh=lineupValue(nt,LG.slots)-thBase;
       if(dMe<myBase*(shop!==undefined?-0.01:0.01)||dTh<-thBase*0.01)continue; // shopping a player: allow lineup-neutral deals; 4) their lineup can drop at most 1%
-      ideas.push({team:t,G,R,dMe,dTh,mkt,score:dMe+0.5*Math.max(0,dTh)-0.75*Math.abs(aR-aG)}); // closer to even ranks higher
+      ideas.push({team:t,G,R,dMe,dTh,pMe:dMe/myBase,pTh:dTh/thBase,mkt,score:dMe+0.5*Math.max(0,dTh)-0.75*Math.abs(aR-aG)}); // closer to even ranks higher
     }
   }
   ideas.sort((a,b)=>b.score-a.score);
@@ -696,7 +706,7 @@ function renderLeague(){
     <div class="idea-h"><b>${esc(x.team.name)}</b>${x.dTh>0?`<span class="tag">Win-win</span>`:""}</div>
     <div class="idea-row"><span class="lbl">You send</span><div class="chips">${x.G.map(chip).join("")}</div></div>
     <div class="idea-row"><span class="lbl">You get</span><div class="chips">${x.R.map(chip).join("")}</div></div>
-    <div class="idea-f"><span>Your lineup <b class="num good">+${fmtN(x.dMe)}</b></span><span>Theirs <b class="num ${x.dTh>=0?"good":"bad"}">${x.dTh>=0?"+":""}${fmtN(x.dTh)}</b></span><span>${mk(x.mkt)}</span><button class="tag clear" data-idea="${ix}">Open in calculator</button></div>
+    <div class="idea-f"><span>Your lineup <b class="num good">+${(x.pMe*100).toFixed(1)}%</b></span><span>Theirs <b class="num ${x.dTh>=0?"good":"bad"}">${x.dTh>=0?"+":""}${(x.pTh*100).toFixed(1)}%</b></span><span>${mk(x.mkt)}</span><button class="tag clear" data-idea="${ix}">Open in calculator</button></div>
   </article>`).join("");
   box._ideas=ideas;
 }
