@@ -1,0 +1,1 @@
+/* Security: refuse to run inside another site's frame (clickjacking). */if(window.top!==window.self){document.documentElement.className+=" framed";try{window.top.location=window.self.location.href;}catch(e){}}
