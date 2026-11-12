@@ -9,7 +9,7 @@ const GAG = {
   "Ja'Marr Chase":1100, "Kyren Williams":1000, "Jahmyr Gibbs":1000, "Tyler Warren":1000, "Jared Goff":1000,
   // Decent guys +700
   "Matthew Stafford":700, "Tucker Kraft":700, "Rashee Rice":700, "Trey McBride":700, "Jameson Williams":700, "Trevor Lawrence":700, "Patrick Mahomes":700, "Rome Odunze":700, "Houston Texans D/ST":700, "Ka'imi Fairbairn":700,
-  "Bryce Young":700, "Matthew Golden":700, "Seattle Seahawks D/ST":700, "Jason Myers":700, "Rome Odunze":700, "Chase Brown":700,"
+  "Bryce Young":700, "Matthew Golden":700, "Seattle Seahawks D/ST":700, "Jason Myers":700, "Rome Odunze":700, "Chase Brown":700,
   // Obvious bench guys +500
   "Josh Jacobs":2200, "Minnesota Vikings D/ST":500, "Brenton Strange":500, "Jonah Coleman":900,
 };
