@@ -2,20 +2,8 @@ const DATA=[["Jahmyr Gibbs","RB","DET",24.5,[10936,10930,10999,10619,10821,10815
 const DATA_DATE="2026-09-30T12:00:00Z";
 // Row: [name, pos, team, age, [12 values: sizes 10/12/14 x formats ppr/half/std/sf], 30-day trend]
 const SIZES=[10,12,14],FMTS=["ppr","half","std","sf"],PREM_DEF={10:22,12:15,14:10};
-// Gag mode: only active when the link ends in #jj. Flat bump added to every size/format value.
-const BOOST = location.hash === "#jc";
-const GAG = {
-  // Superstars +1000
-  "Ja'Marr Chase":1100, "Kyren Williams":1000, "Jahmyr Gibbs":1000, "Tyler Warren":1000, "Jared Goff":1000,
-  // Decent guys +700
-  "Matthew Stafford":700, "Tucker Kraft":700, "Rashee Rice":700, "Trey McBride":700, "Jameson Williams":700, "Trevor Lawrence":700, "Patrick Mahomes":700, "Rome Odunze":700, "Houston Texans D/ST":700, "Ka'imi Fairbairn":700,
-  "Bryce Young":700, "Matthew Golden":700, "Seattle Seahawks D/ST":700, "Jason Myers":700, "Rome Odunze":700, "Chase Brown":700,
-  // Obvious bench guys +500
-  "Josh Jacobs":2200, "Minnesota Vikings D/ST":500, "Brenton Strange":500, "Jonah Coleman":900,
-};
-const bump = r => (BOOST && GAG[r[0]]) || 0;
 const toP=rows=>rows.map((r,i)=>({id:i,n:r[0],pos:r[1],tm:r[2],age:r[3],
-  v:  bump(r) ? r[4].map(x => x + bump(r)) : r[4],
+  v:  r[4],
   tr: r[5]}));
 let P=toP(DATA);
 const FMT_NAME={ppr:"PPR",half:"Half-PPR",std:"Standard",sf:"Superflex PPR"};
@@ -99,12 +87,14 @@ function playoffOpps(p){const rk=((MATCH.ranks||{})[p.pos])||{};const g=playoffG
   return g.map(([wk,opp])=>{const r=rk[opp]||null;return `<span class="opp ${r?tone(r):"avg"}"><small>Wk${wk}</small> ${opp}${r?` <b>${ordinal(r)}</b>`:""}</span>`;}).join("");}
 // Usage from Sleeper season stats (values.json "usage"): [games, snap %, target share %, carry share %, targets/game, rush att/game].
 let USAGE={};
-function usageFact(p){const u=USAGE[p.n];if(!u||!u[0])return null;const[gp,snp,ts,cs,tpg,rpg]=u;const sn=snp!=null?`${snp}% of snaps`:"";
-  const j=(...x)=>x.filter(Boolean).join(" · ");
-  if(p.pos==="WR"||p.pos==="TE")return{k:"Target share",v:ts!=null?ts+"%":"—",sub:j(tpg!=null?tpg+" targets/game":"",sn)};
-  if(p.pos==="RB")return{k:"Carry share",v:cs!=null?cs+"%":"—",sub:j(ts!=null?ts+"% of targets":"",sn)};
-  if(p.pos==="QB")return{k:"Rushes / game",v:rpg!=null?String(rpg):"—",sub:j(gp+" games",sn)};
-  return null;}
+// Usage strip on the player card: the stats that matter for each position.
+function usageStats(p){const u=USAGE[p.n];if(!u||!u[0])return null;const[gp,snp,ts,cs,tpg,rpg]=u;
+  const pc=v=>v!=null?v+"%":"—",n=v=>v!=null?String(v):"—";
+  const snaps=["Snaps",pc(snp)],tg=["Targets / g",n(tpg)],ru=["Rush att / g",n(rpg)];
+  const rows=p.pos==="WR"||p.pos==="TE"?[snaps,["Target share",pc(ts)],tg,ru]
+    :p.pos==="RB"?[snaps,["Carry share",pc(cs)],ru,tg]
+    :p.pos==="QB"?[snaps,ru]:null;
+  return rows&&{gp,rows};}
 // 30-day trend as a word (no value numbers shown): big moves get a double arrow.
 function trend(t){if(t==null)return `<span class="tr fl">—</span>`;const c=t>50?"up":t<-50?"dn":"fl";
   const a=t>1500?"▲▲ Hot":t>50?"▲ Rising":t<-1500?"▼▼ Cold":t<-50?"▼ Falling":"■ Steady";return `<span class="tr ${c}">${a}</span>`;}
@@ -567,7 +557,7 @@ let PS_ID=null;
 function openPlayer(id){const p=P[id];if(!p)return;PS_ID=id;$("ps-badge").innerHTML=ovrBadge(p);$("ps-name").textContent=p.n;
   $("ps-meta").textContent=`${p.pos} · ${p.tm}${p.age?" · "+p.age+" yrs":""} · ${tierOf(ovrOf(p))[1]}`;
   $("ps-trend").innerHTML=trend(p.tr);$("ps-sos").innerHTML=sosChip(p);$("ps-po").innerHTML=playoffChip(p);
-  const u=usageFact(p);$("ps-use-box").hidden=!u;if(u){$("ps-use-k").textContent=u.k;$("ps-use").textContent=u.v;$("ps-use-sub").textContent=u.sub;}
+  const u=usageStats(p);$("ps-use-box").hidden=!u;if(u){$("ps-use-k").textContent=`Usage · ${u.gp} games`;$("ps-use").innerHTML=u.rows.map(([k,v])=>`<div><b>${v}</b><small>${k}</small></div>`).join("");}
   const po=playoffOpps(p);$("ps-sos-text").innerHTML=po?`<span class="k" style="display:block;margin-bottom:6px">Playoff opponents · ESPN rank vs ${p.pos} (32nd = easiest)</span><span class="opps">${po}</span>`:"";
   const t=inTrade(id);$("ps-give").disabled=t;$("ps-get").disabled=t;$("ps-give").textContent=t?"Already in the trade":"Add to You give";$("ps-get").textContent=t?"Already in the trade":"Add to You get";
   const d=$("player-sheet");if(!d.open){try{d.showModal();}catch(e){d.setAttribute("open","");}}}
