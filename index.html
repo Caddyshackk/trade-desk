@@ -306,8 +306,8 @@ body.m .ovr-legend{display:none}body.m .ovr-legend.show{display:flex}
 .ps-top .ovr{height:46px;min-width:52px;font-size:28px}
 .ps-top h3{margin:0;font-size:20px}
 .ps-facts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.ps-facts>div{display:grid;gap:4px;padding:10px 12px;border-radius:10px;background:var(--panel2)}
-.ps-facts .k{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.ps-facts>div{display:grid;gap:8px;align-content:start;justify-items:start;padding:10px 12px;border-radius:10px;background:var(--panel2)}
+.ps-facts .k{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}.ps-facts>.ps-use{justify-items:stretch}
 .ps-facts{grid-template-columns:repeat(3,1fr)}.ps-facts>div{min-width:0}.ps-facts>.ps-use{grid-column:1/-1}.ps-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(70px,1fr));gap:8px}.ps-stats>div{display:grid;gap:2px}.ps-stats b{font-size:20px;font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums}.ps-stats small{font-size:11px;color:var(--muted)}
 @media (min-width:721px){.psheet{margin:auto;max-width:440px;border-radius:18px}}
 .pname{cursor:pointer;text-decoration:underline dotted;text-decoration-color:color-mix(in srgb,currentColor 40%,transparent);text-underline-offset:3px}.pname:hover,.pname:focus-visible{color:var(--flag-ink);text-decoration-color:currentColor}
@@ -507,7 +507,7 @@ footer a{color:inherit}
   </nav>
   <dialog class="psheet" id="player-sheet" aria-labelledby="ps-name">
     <div class="ps-top"><span id="ps-badge"></span><div><h3 id="ps-name"></h3><p class="hint" id="ps-meta" style="margin:0"></p></div><button class="sheet-x" type="button" id="ps-close" aria-label="Close">✕</button></div>
-    <div class="ps-facts"><div><span class="k">30-day</span><span id="ps-trend"></span></div><div><span class="k">Matchups left</span><span id="ps-sos"></span></div><div><span class="k">Playoffs · Wk 15–17</span><span id="ps-po"></span></div><div id="ps-use-box" class="ps-use"><span class="k" id="ps-use-k">Usage</span><div class="ps-stats" id="ps-use"></div></div></div>
+    <div class="ps-facts"><div><span class="k">30-day</span><span id="ps-trend"></span></div><div><span class="k" title="Rest-of-season matchups">Schedule</span><span id="ps-sos"></span></div><div><span class="k" title="Fantasy playoffs, NFL weeks 15–17">Playoffs</span><span id="ps-po"></span></div><div id="ps-use-box" class="ps-use"><span class="k" id="ps-use-k">Usage</span><div class="ps-stats" id="ps-use"></div></div></div>
     <p class="hint" id="ps-sos-text" style="margin:0"></p>
     <div class="ps-actions"><button class="btn" type="button" id="ps-give">Add to You give</button><button class="btn" type="button" id="ps-get">Add to You get</button></div>
   </dialog>
