@@ -41,7 +41,7 @@ async function refresh(){
     const r=await fetch("values.json",{cache:"no-store"});if(!r.ok)return;
     const j=await r.json();if(!Array.isArray(j.players)||j.players.length<50||!Array.isArray(j.players[0][4]))return;
     const give=S.give.map(i=>P[i].n),get=S.get.map(i=>P[i].n);
-    P=toP(j.players);NAME_IX=null;if(j.sleeper)Object.assign(SLEEPER_IDS,j.sleeper);if(j.matchups&&j.matchups.ranks&&j.matchups.sched&&Object.keys(j.matchups.sched).length>=30){MATCH=j.matchups;MU_CACHE={};}S.give=idsFromNames(give);S.get=idsFromNames(get);
+    P=toP(j.players);NAME_IX=null;if(j.sleeper)Object.assign(SLEEPER_IDS,j.sleeper);if(j.matchups&&j.matchups.ranks&&j.matchups.sched&&Object.keys(j.matchups.sched).length>=30){MATCH=j.matchups;MU_CACHE={};}if(j.usage)USAGE=j.usage;S.give=idsFromNames(give);S.get=idsFromNames(get);
     if(j.updated)setDate(j.updated);render();if(LG)loadLeague(LG.platform,LG.id,true);
   }catch(e){}
 }
@@ -86,6 +86,25 @@ function sosChip(p){const r=matchupRank(p.tm,p.pos);if(!r)return `<span class="s
 // Opponent-by-opponent chips (player card + desktop hover).
 function matchupChips(p){const g=matchupList(p);if(!g.length)return "";
   return g.map(x=>`<span class="opp ${x.r?tone(x.r):"avg"}"><small>Wk${x.wk}</small> ${x.opp}${x.r?` <b>${ordinal(x.r)}</b>`:""}</span>`).join("");}
+// Fantasy playoffs = NFL weeks 15-17. Same ESPN ranks as "Matchups left" (32nd = easiest), just those 3 weeks.
+const playoffGames=tm=>((MATCH.sched||{})[tm]||[]).filter(x=>x[0]>=15&&x[0]<=17);
+function playoffRank(tm,pos){const key="po"+pos;
+  if(!MU_CACHE[key]){const rk=(MATCH.ranks||{})[pos]||{};const score={};
+    for(const team of Object.keys(MATCH.sched||{})){const g=playoffGames(team).map(x=>rk[x[1]]).filter(Boolean);if(g.length)score[team]=g.reduce((x,y)=>x+y,0)/g.length;}
+    const order=Object.keys(score).sort((x,y)=>score[x]-score[y]);MU_CACHE[key]={};order.forEach((team,i)=>MU_CACHE[key][team]=i+1+(32-order.length));}
+  return MU_CACHE[key][tm]||null;}
+function playoffChip(p){const r=playoffRank(p.tm,p.pos);if(!r)return `<span class="sos avg">—</span>`;const c=tone(r);
+  return `<span class="sos ${c}">${c==="easy"?"Easy":c==="hard"?"Hard":"Avg"} <span class="rk">${ordinal(r)}</span></span>`;}
+function playoffOpps(p){const rk=((MATCH.ranks||{})[p.pos])||{};const g=playoffGames(p.tm);
+  return g.map(([wk,opp])=>{const r=rk[opp]||null;return `<span class="opp ${r?tone(r):"avg"}"><small>Wk${wk}</small> ${opp}${r?` <b>${ordinal(r)}</b>`:""}</span>`;}).join("");}
+// Usage from Sleeper season stats (values.json "usage"): [games, snap %, target share %, carry share %, targets/game, rush att/game].
+let USAGE={};
+function usageFact(p){const u=USAGE[p.n];if(!u||!u[0])return null;const[gp,snp,ts,cs,tpg,rpg]=u;const sn=snp!=null?`${snp}% of snaps`:"";
+  const j=(...x)=>x.filter(Boolean).join(" · ");
+  if(p.pos==="WR"||p.pos==="TE")return{k:"Target share",v:ts!=null?ts+"%":"—",sub:j(tpg!=null?tpg+" targets/game":"",sn)};
+  if(p.pos==="RB")return{k:"Carry share",v:cs!=null?cs+"%":"—",sub:j(ts!=null?ts+"% of targets":"",sn)};
+  if(p.pos==="QB")return{k:"Rushes / game",v:rpg!=null?String(rpg):"—",sub:j(gp+" games",sn)};
+  return null;}
 // 30-day trend as a word (no value numbers shown): big moves get a double arrow.
 function trend(t){if(t==null)return `<span class="tr fl">—</span>`;const c=t>50?"up":t<-50?"dn":"fl";
   const a=t>1500?"▲▲ Hot":t>50?"▲ Rising":t<-1500?"▼▼ Cold":t<-50?"▼ Falling":"■ Steady";return `<span class="tr ${c}">${a}</span>`;}
@@ -96,7 +115,7 @@ function remove(side,i){S[side]=S[side].filter(x=>x!==i);S.example=false;render(
 function renderRoster(side){
   const ul=$("r-"+side);const ids=[...S[side]].sort((a,b)=>val(P[b])-val(P[a]));
   if(!ids.length){ul.innerHTML=`<li class="slot">No players yet. Search above or use the value board.</li>`;return;}
-  ul.innerHTML=ids.map(i=>{const p=P[i];return `<li class="card">${ovrBadge(p)}<div class="who"><b>${esc(p.n)}</b><small><span class="pos ${p.pos}" style="height:18px;min-width:28px;font-size:10px">${p.pos}</span> ${p.tm} · ${p.age?p.age+" yrs · ":""}${trend(p.tr)}</small></div><button class="x" data-rm="${side}:${i}" aria-label="Remove ${esc(p.n)}">×</button></li>`}).join("");
+  ul.innerHTML=ids.map(i=>{const p=P[i];return `<li class="card">${ovrBadge(p)}<div class="who"><b class="pname" role="button" tabindex="0" data-card="${p.id}">${esc(p.n)}</b><small><span class="pos ${p.pos}" style="height:18px;min-width:28px;font-size:10px">${p.pos}</span> ${p.tm} · ${p.age?p.age+" yrs · ":""}${trend(p.tr)}</small></div><button class="x" data-rm="${side}:${i}" aria-label="Remove ${esc(p.n)}">×</button></li>`}).join("");
 }
 
 function renderVerdict(){
@@ -135,7 +154,7 @@ function renderBoard(){
   const posRank={};
   const rows=list.map((p,ix)=>{posRank[p.pos]=(posRank[p.pos]||0)+1;return{p,rank:ix+1,pr:posRank[p.pos]};})
     .filter(o=>(posF==="ALL"||o.p.pos===posF)&&(!q||o.p.n.toLowerCase().includes(q)));
-  $("tb").innerHTML=rows.map(({p,rank,pr})=>{const t=inTrade(p.id);return `<tr data-pid="${p.id}"><td class="r num">${rank}</td><td><div class="pl">${ovrBadge(p)}<div class="pl-who"><b>${esc(p.n)}</b><small><span class="pos ${p.pos}">${p.pos}${pr}</span> ${p.tm}${p.age?" · "+p.age+" yrs":""} <span class="sm-only">${sosChip(p)}</span></small></div></div></td><td class="hide-sm">${trend(p.tr)}</td><td class="hide-sm">${sosChip(p)}</td><td class="r"><button class="add" data-add="give:${p.id}" ${t?"disabled":""}>Give</button> <button class="add" data-add="get:${p.id}" ${t?"disabled":""}>Get</button></td></tr>`}).join("")||`<tr><td colspan="5" style="color:var(--muted)">No players match.</td></tr>`;
+  $("tb").innerHTML=rows.map(({p,rank,pr})=>{const t=inTrade(p.id);return `<tr data-pid="${p.id}"><td class="r num">${rank}</td><td><div class="pl">${ovrBadge(p)}<div class="pl-who"><b class="pname" role="button" tabindex="0" data-card="${p.id}">${esc(p.n)}</b><small><span class="pos ${p.pos}">${p.pos}${pr}</span> ${p.tm}${p.age?" · "+p.age+" yrs":""} <span class="sm-only">${sosChip(p)}</span></small></div></div></td><td class="hide-sm">${trend(p.tr)}</td><td class="hide-sm">${sosChip(p)}</td><td class="r"><button class="add" data-add="give:${p.id}" ${t?"disabled":""}>Give</button> <button class="add" data-add="get:${p.id}" ${t?"disabled":""}>Get</button></td></tr>`}).join("")||`<tr><td colspan="5" style="color:var(--muted)">No players match.</td></tr>`;
 }
 
 function renderField(){
@@ -327,7 +346,7 @@ function renderLeague(){
     LG.teams.filter(tm=>tm.id!==LG.myTeam).map(tm=>{const n=res.byTeam[tm.id].length;return`<button type="button" data-team="${esc(tm.id)}" aria-pressed="${IDEA_TEAM===tm.id}"${n?"":" disabled"}>${esc(tm.name)} <span class="cnt">${n}</span></button>`;}).join("");
   const ideas=IDEA_TEAM==="all"?res.all:res.byTeam[IDEA_TEAM];
   if(!ideas.length){box.innerHTML=SHOP?`<p class="hint">No fair deals found for ${esc(SHOP)}${IDEA_TEAM!=="all"?" with this team":""}. Try a looser Fairness setting or a different team.</p>`:`<p class="hint">No fair trades found that improve your starting lineup. Your roster may already be well balanced, or try a different stud premium.</p>`;return;}
-  const chip=i=>`<span class="chip static">${ovrBadge(P[i])}<span class="pos ${P[i].pos}">${P[i].pos}</span>${esc(P[i].n)}</span>`;
+  const chip=i=>`<span class="chip static">${ovrBadge(P[i])}<span class="pos ${P[i].pos}">${P[i].pos}</span><span class="pname" role="button" tabindex="0" data-card="${i}">${esc(P[i].n)}</span></span>`;
   const mk=m=>Math.abs(m)<.01?"Dead even":m>0?`You gain ${Math.round(m*100)}% in value`:`You pay ${Math.round(-m*100)}% extra`;
   box.innerHTML=ideas.map((x,ix)=>`<article class="idea">
     <div class="idea-h"><b>${esc(x.team.name)}</b>${x.dTh>0?`<span class="tag">Win-win</span>`:""}</div>
@@ -503,7 +522,7 @@ $("copy-link").addEventListener("click",async()=>{
   const b=$("copy-link"),out=$("link-out");
   try{await navigator.clipboard.writeText(url);b.textContent="Link copied";out.hidden=true;}
   catch(e){out.value=url;out.hidden=false;out.select();b.textContent="Copy the link below";}
-  setTimeout(()=>b.textContent="Copy trade link",2500);
+  setTimeout(()=>b.textContent="🔗 Copy trade link",2500);
 });
 
 renderField();setDate(DATA_DATE);render();refresh();
@@ -547,12 +566,16 @@ document.addEventListener("click",e=>{const h=e.target.closest("[data-help]");if
 let PS_ID=null;
 function openPlayer(id){const p=P[id];if(!p)return;PS_ID=id;$("ps-badge").innerHTML=ovrBadge(p);$("ps-name").textContent=p.n;
   $("ps-meta").textContent=`${p.pos} · ${p.tm}${p.age?" · "+p.age+" yrs":""} · ${tierOf(ovrOf(p))[1]}`;
-  $("ps-trend").innerHTML=trend(p.tr);$("ps-sos").innerHTML=sosChip(p);
-  $("ps-sos-text").innerHTML=matchupChips(p)?`<span class="k" style="display:block;margin-bottom:6px">Opponents · ESPN rank vs ${p.pos} (32nd = easiest)</span><span class="opps">${matchupChips(p)}</span>`:"";
+  $("ps-trend").innerHTML=trend(p.tr);$("ps-sos").innerHTML=sosChip(p);$("ps-po").innerHTML=playoffChip(p);
+  const u=usageFact(p);$("ps-use-box").hidden=!u;if(u){$("ps-use-k").textContent=u.k;$("ps-use").textContent=u.v;$("ps-use-sub").textContent=u.sub;}
+  const po=playoffOpps(p);$("ps-sos-text").innerHTML=po?`<span class="k" style="display:block;margin-bottom:6px">Playoff opponents · ESPN rank vs ${p.pos} (32nd = easiest)</span><span class="opps">${po}</span>`:"";
   const t=inTrade(id);$("ps-give").disabled=t;$("ps-get").disabled=t;$("ps-give").textContent=t?"Already in the trade":"Add to You give";$("ps-get").textContent=t?"Already in the trade":"Add to You get";
   const d=$("player-sheet");if(!d.open){try{d.showModal();}catch(e){d.setAttribute("open","");}}}
 function closePlayer(){const d=$("player-sheet");if(d.open)d.close();}
 $("tb").addEventListener("click",e=>{if(!document.body.classList.contains("m")||e.target.closest("button"))return;const tr=e.target.closest("tr[data-pid]");if(tr)openPlayer(+tr.dataset.pid);});
+// Tap or click any player name (value board, trade sides, trade ideas) to open his card.
+document.addEventListener("click",e=>{const c=e.target.closest("[data-card]");if(!c)return;e.preventDefault();openPlayer(+c.dataset.card);});
+document.addEventListener("keydown",e=>{if(e.key!=="Enter"&&e.key!==" ")return;const c=e.target.closest&&e.target.closest("[data-card]");if(c){e.preventDefault();openPlayer(+c.dataset.card);}});
 $("ps-close").addEventListener("click",closePlayer);
 $("player-sheet").addEventListener("click",e=>{if(e.target===$("player-sheet"))closePlayer();});
 $("ps-give").addEventListener("click",()=>{closePlayer();add("give",PS_ID);});

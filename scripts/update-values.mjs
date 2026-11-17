@@ -105,6 +105,25 @@ async function buildMatchups(season, getJSON) {
   return { ranks, sched };
 }
 
+// Usage: Sleeper season stats -> snap %, target share, carry share (team totals = sum of that team's players).
+// usage[name] = [games, snap %, target share %, carry share %, targets/game, rush att/game]
+async function usage() {
+  const state = await getJSON("https://api.sleeper.app/v1/state/nfl");
+  const list = await getJSON(`https://api.sleeper.com/stats/nfl/${state.season}?season_type=regular&position[]=QB&position[]=RB&position[]=WR&position[]=TE`);
+  const tm = {};
+  for (const it of list || []) { const s = it.stats || {}, t = it.team; if (!t) continue;
+    tm[t] = tm[t] || { tgt: 0, ra: 0 }; tm[t].tgt += +s.rec_tgt || 0; tm[t].ra += +s.rush_att || 0; }
+  const pct = (a, b) => (b > 0 ? Math.round((100 * a) / b) : null), per = (a, g) => (g > 0 ? Math.round((10 * a) / g) / 10 : null);
+  const out = {};
+  for (const it of list || []) {
+    const s = it.stats || {}, gp = +s.gp || 0, name = SLEEPER[it.player_id]; if (!name || !gp) continue;
+    const t = tm[it.team] || { tgt: 0, ra: 0 };
+    out[name] = [gp, s.tm_off_snp ? pct(+s.off_snp || 0, +s.tm_off_snp) : null, pct(+s.rec_tgt || 0, t.tgt), pct(+s.rush_att || 0, t.ra), per(+s.rec_tgt || 0, gp), per(+s.rush_att || 0, gp)];
+  }
+  if (Object.keys(out).length < 100) throw new Error(`Sleeper stats too thin (${Object.keys(out).length} players)`);
+  return out;
+}
+
 let off, kd, ok = true;
 try { off = await offense(); } catch (e) { console.warn("Offense kept from last run:", e.message); off = prevOf(["QB", "RB", "WR", "TE"]); ok = false; }
 try { kd = await kdef(); } catch (e) { console.warn("K/DEF kept from last run:", e.message); kd = prevOf(["K", "DEF"]); }
@@ -115,7 +134,9 @@ const sleeper = { ...(prev.sleeper || {}), ...SLEEPER };
 let matchups = prev.matchups || null, matchupsUpdated = prev.matchupsUpdated || null;
 try { const season = new Date().getMonth() < 2 ? new Date().getFullYear() - 1 : new Date().getFullYear(); matchups = await buildMatchups(season, getJSON); matchupsUpdated = new Date().toISOString(); }
 catch (e) { console.warn("Matchups kept from last run:", e.message); }
-const out = { sleeper, matchups, matchupsUpdated, updated: ok ? new Date().toISOString() : prev.updated || new Date().toISOString(), source: "FantasyCalc (QB/RB/WR/TE), Sleeper projections (K/DEF)", players: [...off, ...kd] };
+let use = prev.usage || null;
+try { use = await usage(); } catch (e) { console.warn("Usage kept from last run:", e.message); }
+const out = { sleeper, usage: use, matchups, matchupsUpdated, updated: ok ? new Date().toISOString() : prev.updated || new Date().toISOString(), source: "FantasyCalc (QB/RB/WR/TE), Sleeper projections (K/DEF)", players: [...off, ...kd] };
 await writeFile(OUT, JSON.stringify(out));
 console.log(`Wrote ${out.players.length} players (${off.length} offense, ${kd.length} K/DEF).`);
 // Exit right away (nothing left to wait on).
