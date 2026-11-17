@@ -87,14 +87,17 @@ function playoffOpps(p){const rk=((MATCH.ranks||{})[p.pos])||{};const g=playoffG
   return g.map(([wk,opp])=>{const r=rk[opp]||null;return `<span class="opp ${r?tone(r):"avg"}"><small>Wk${wk}</small> ${opp}${r?` <b>${ordinal(r)}</b>`:""}</span>`;}).join("");}
 // Usage from Sleeper season stats (values.json "usage"): [games, snap %, target share %, carry share %, targets/game, rush att/game].
 let USAGE={};
-// Usage strip on the player card: the stats that matter for each position.
-function usageStats(p){const u=USAGE[p.n];if(!u||!u[0])return null;const[gp,snp,ts,cs,tpg,rpg]=u;
-  const pc=v=>v!=null?v+"%":"—",n=v=>v!=null?String(v):"—";
-  const snaps=["Snaps",pc(snp)],tg=["Targets / g",n(tpg)],ru=["Rush att / g",n(rpg)];
-  const rows=p.pos==="WR"||p.pos==="TE"?[snaps,["Target share",pc(ts)],tg,ru]
-    :p.pos==="RB"?[snaps,["Carry share",pc(cs)],ru,tg]
-    :p.pos==="QB"?[snaps,ru]:null;
-  return rows&&{gp,rows};}
+// Usage strip on the player card. Big number = last 3 games (catches a new role); small = season, with an arrow
+// when the recent number is clearly higher or lower (5+ points for %, 1+ per game for counts).
+function usageStats(p){const u=USAGE[p.n];if(!u||!u[0])return null;const r=Array.isArray(u[6])&&u[6][0]?u[6]:null;
+  // [label, index in the array, is a percent]
+  const SN=["Snaps",1,1],TS=["Target share",2,1],CS=["Carry share",3,1],TG=["Targets / g",4,0],RA=["Rush att / g",5,0];
+  const pick=p.pos==="WR"||p.pos==="TE"?[SN,TS,TG,RA]:p.pos==="RB"?[SN,CS,RA,TG]:p.pos==="QB"?[SN,RA]:null;if(!pick)return null;
+  const f=(v,isPct)=>v==null?"—":isPct?v+"%":String(v);
+  const rows=pick.map(([k,i,isPct])=>{const now=r?r[i]:u[i],sea=u[i];let dir="";
+    if(r&&now!=null&&sea!=null){const d=now-sea;if(d>=(isPct?5:1))dir="up";else if(d<=-(isPct?5:1))dir="dn";}
+    return{k,v:f(now,isPct),sea:r?f(sea,isPct):"",dir};});
+  return{head:r?`Usage · last ${r[0]} game${r[0]>1?"s":""}`:`Usage · ${u[0]} games`,rows};}
 // 30-day trend as a word (no value numbers shown): big moves get a double arrow.
 function trend(t){if(t==null)return `<span class="tr fl">—</span>`;const c=t>50?"up":t<-50?"dn":"fl";
   const a=t>1500?"▲▲ Hot":t>50?"▲ Rising":t<-1500?"▼▼ Cold":t<-50?"▼ Falling":"■ Steady";return `<span class="tr ${c}">${a}</span>`;}
@@ -557,7 +560,7 @@ let PS_ID=null;
 function openPlayer(id){const p=P[id];if(!p)return;PS_ID=id;$("ps-badge").innerHTML=ovrBadge(p);$("ps-name").textContent=p.n;
   $("ps-meta").textContent=`${p.pos} · ${p.tm}${p.age?" · "+p.age+" yrs":""} · ${tierOf(ovrOf(p))[1]}`;
   $("ps-trend").innerHTML=trend(p.tr);$("ps-sos").innerHTML=sosChip(p);$("ps-po").innerHTML=playoffChip(p);
-  const u=usageStats(p);$("ps-use-box").hidden=!u;if(u){$("ps-use-k").textContent=`Usage · ${u.gp} games`;$("ps-use").innerHTML=u.rows.map(([k,v])=>`<div><b>${v}</b><small>${k}</small></div>`).join("");}
+  const u=usageStats(p);$("ps-use-box").hidden=!u;if(u){$("ps-use-k").textContent=u.head;$("ps-use").innerHTML=u.rows.map(x=>`<div><b>${x.v}${x.dir?`<i class="ud ${x.dir}">${x.dir==="up"?"▲":"▼"}</i>`:""}</b><small>${x.k}</small>${x.sea?`<small class="sea">Season ${x.sea}</small>`:""}</div>`).join("");}
   const po=playoffOpps(p);$("ps-sos-text").innerHTML=po?`<span class="k" style="display:block;margin-bottom:6px">Playoff opponents · ESPN rank vs ${p.pos} (32nd = easiest)</span><span class="opps">${po}</span>`:"";
   const t=inTrade(id);$("ps-give").disabled=t;$("ps-get").disabled=t;$("ps-give").textContent=t?"Already in the trade":"Add to You give";$("ps-get").textContent=t?"Already in the trade":"Add to You get";
   const d=$("player-sheet");if(!d.open){try{d.showModal();}catch(e){d.setAttribute("open","");}}}

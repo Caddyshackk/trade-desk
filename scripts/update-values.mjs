@@ -105,22 +105,34 @@ async function buildMatchups(season, getJSON) {
   return { ranks, sched };
 }
 
-// Usage: Sleeper season stats -> snap %, target share, carry share (team totals = sum of that team's players).
-// usage[name] = [games, snap %, target share %, carry share %, targets/game, rush att/game]
+// Usage from Sleeper stats: season-long AND each player's last 3 games played (to catch role changes).
+// usage[name] = [games, snap %, target share %, carry share %, targets/g, rush att/g, last3]
+// last3 = the same 6 numbers over his 3 most recent games (null if none). Team totals come from the same games.
 async function usage() {
   const state = await getJSON("https://api.sleeper.app/v1/state/nfl");
-  const list = await getJSON(`https://api.sleeper.com/stats/nfl/${state.season}?season_type=regular&position[]=QB&position[]=RB&position[]=WR&position[]=TE`);
-  const tm = {};
-  for (const it of list || []) { const s = it.stats || {}, t = it.team; if (!t) continue;
-    tm[t] = tm[t] || { tgt: 0, ra: 0 }; tm[t].tgt += +s.rec_tgt || 0; tm[t].ra += +s.rush_att || 0; }
+  const season = state.season, POS = "&position[]=QB&position[]=RB&position[]=WR&position[]=TE";
   const pct = (a, b) => (b > 0 ? Math.round((100 * a) / b) : null), per = (a, g) => (g > 0 ? Math.round((10 * a) / g) / 10 : null);
+  // One list of stat rows (a week, or the whole season) -> per-player totals incl. his team's totals.
+  const tally = (list) => { const tm = {}, out = {};
+    for (const it of list || []) { const x = it.stats || {}; if (!it.team) continue; const t = (tm[it.team] = tm[it.team] || { tgt: 0, ra: 0 }); t.tgt += +x.rec_tgt || 0; t.ra += +x.rush_att || 0; }
+    for (const it of list || []) { const x = it.stats || {}, gp = +x.gp || 0; if (!gp) continue; const t = tm[it.team] || { tgt: 0, ra: 0 };
+      out[it.player_id] = { gp, snp: +x.off_snp || 0, tsnp: +x.tm_off_snp || 0, tgt: +x.rec_tgt || 0, ra: +x.rush_att || 0, ttgt: t.tgt, tra: t.ra }; }
+    return out; };
+  const sum = (rows) => rows.reduce((a, r) => { for (const k in r) a[k] = (a[k] || 0) + r[k]; return a; }, {});
+  const nums = (p) => [p.gp, p.tsnp ? pct(p.snp, p.tsnp) : null, pct(p.tgt, p.ttgt), pct(p.ra, p.tra), per(p.tgt, p.gp), per(p.ra, p.gp)];
+  const seasonT = tally(await getJSON(`https://api.sleeper.com/stats/nfl/${season}?season_type=regular${POS}`));
+  // Recent weeks, newest first. The current week is included (games already played count).
+  const cur = state.season_type === "regular" ? Math.min(18, Number(state.week) || 1) : 18;
+  const weeks = [];
+  for (let w = cur; w >= Math.max(1, cur - 5); w--) { try { weeks.push(tally(await getJSON(`https://api.sleeper.com/stats/nfl/${season}/${w}?season_type=regular${POS}`))); } catch {} }
   const out = {};
-  for (const it of list || []) {
-    const s = it.stats || {}, gp = +s.gp || 0, name = SLEEPER[it.player_id]; if (!name || !gp) continue;
-    const t = tm[it.team] || { tgt: 0, ra: 0 };
-    out[name] = [gp, s.tm_off_snp ? pct(+s.off_snp || 0, +s.tm_off_snp) : null, pct(+s.rec_tgt || 0, t.tgt), pct(+s.rush_att || 0, t.ra), per(+s.rec_tgt || 0, gp), per(+s.rush_att || 0, gp)];
+  for (const [pid, p] of Object.entries(seasonT)) {
+    const name = SLEEPER[pid]; if (!name) continue;
+    const last = weeks.map((w) => w[pid]).filter(Boolean).slice(0, 3);
+    out[name] = [...nums(p), last.length ? nums(sum(last)) : null];
   }
   if (Object.keys(out).length < 100) throw new Error(`Sleeper stats too thin (${Object.keys(out).length} players)`);
+  console.log(`Usage: ${Object.keys(out).length} players, ${weeks.length} recent weeks read.`);
   return out;
 }
 
