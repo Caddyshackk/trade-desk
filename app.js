@@ -2,8 +2,21 @@ const DATA=[["Jahmyr Gibbs","RB","DET",24.5,[10936,10930,10999,10619,10821,10815
 const DATA_DATE="2026-09-30T12:00:00Z";
 // Row: [name, pos, team, age, [12 values: sizes 10/12/14 x formats ppr/half/std/sf], 30-day trend]
 const SIZES=[10,12,14],FMTS=["ppr","half","std","sf"],PREM_DEF={10:22,12:15,14:10};
+// Thanksgiving gag mode: only when the link ends in #jc, and it switches itself off after Nov 30, 2026
+// so an old prank link can never be used to make a real trade look fair. Flat bump on every size/format value.
+const BOOST = location.hash === "#jc" && Date.now() < new Date(2026, 11, 1).getTime();
+const GAG = {
+  // Superstars +1000
+  "Ja'Marr Chase":1000, "Amon-Ra St. Brown":700, "Jonah Coleman":1000, "Kyren Williams":700, "Chase Brown":500, "Trevor Lawrence":500,
+  // Decent guys +700
+  "Tucker Kraft":700, "Omarion Hampton":500, "Rashee Rice":500, "Rome Odunze":500, "Matthew Stafford":500, "Josh Downs":700,
+  "Minnesota Vikings D/ST":700, "Ka'imi Fairbairn":700,
+  // Obvious bench guys +500 (Josh Jacobs keeps his legendary bump)
+  "Josh Jacobs":1500, "Jacksonville Jaguars D/ST":500, "Michael Mayer":500,
+};
+const bump = r => (BOOST && GAG[r[0]]) || 0;
 const toP=rows=>rows.map((r,i)=>({id:i,n:r[0],pos:r[1],tm:r[2],age:r[3],
-  v:  r[4],
+  v:  bump(r) ? r[4].map(x => x + bump(r)) : r[4],
   tr: r[5]}));
 let P=toP(DATA);
 const FMT_NAME={ppr:"PPR",half:"Half-PPR",std:"Standard",sf:"Superflex PPR"};
